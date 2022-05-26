@@ -1,12 +1,23 @@
-. C:\ArcBox\common\script\powershell\arcboxPaths-v1.ps1
+$Env:ArcBoxDir = "C:\ArcBox"
+$Env:ArcBoxLogsDir = "$Env:ArcBoxDir\Logs"
+$Env:ArcBoxVMDir = "$Env:ArcBoxDir\Virtual Machines"
+$Env:ArcBoxIconDir = "C:\ArcBox\Icons"
+$agentScript = "$Env:ArcBoxDir\agentScript"
 
 Start-Transcript -Path $Env:ArcBoxLogsDir\ArcServersLogonScript.log
-. $Env:PowerShellCommonScripts\azureConfigDir-v1.ps1
-. $Env:PowerShellCommonScripts\loginAzureTools-v1.ps1
 
-Azure-Config-Directory $Env:ArcBoxDir  ".servers" 
+$cliDir = New-Item -Path "$Env:ArcBoxDir\.cli\" -Name ".servers" -ItemType Directory
 
-Arbox-Login-Azure-Tools
+if(-not $($cliDir.Parent.Attributes.HasFlag([System.IO.FileAttributes]::Hidden))) {
+    $folder = Get-Item $cliDir.Parent.FullName -ErrorAction SilentlyContinue
+    $folder.Attributes += [System.IO.FileAttributes]::Hidden
+}
+
+$Env:AZURE_CONFIG_DIR = $cliDir.FullName
+
+# Required for CLI commands
+Write-Header "Az CLI Login"
+az login --service-principal --username $Env:spnClientID --password $Env:spnClientSecret --tenant $Env:spnTenantId
 
 # Register Azure providers
 Write-Header "Registering Providers"
@@ -148,29 +159,29 @@ $hasPermission = $rolePermissions | Where-Object {($_.principalId -eq $spnObject
 # Copying the Azure Arc Connected Agent to nested VMs
 Write-Header "Customize Onboarding Scripts"
 Write-Output "Replacing values within Azure Arc connected machine agent install scripts..."
-(Get-Content -path "$Env:agentScript\installArcAgent.ps1" -Raw) -replace '\$spnClientId',"'$Env:spnClientId'" -replace '\$spnClientSecret',"'$Env:spnClientSecret'" -replace '\$resourceGroup',"'$Env:resourceGroup'" -replace '\$spnTenantId',"'$Env:spnTenantId'" -replace '\$azureLocation',"'$Env:azureLocation'" -replace '\$subscriptionId',"'$Env:subscriptionId'" | Set-Content -Path "$Env:agentScript\installArcAgentModified.ps1"
-(Get-Content -path "$Env:agentScript\installArcAgentUbuntu.sh" -Raw) -replace '\$spnClientId',"'$Env:spnClientId'" -replace '\$spnClientSecret',"'$Env:spnClientSecret'" -replace '\$resourceGroup',"'$Env:resourceGroup'" -replace '\$spnTenantId',"'$Env:spnTenantId'" -replace '\$azureLocation',"'$Env:azureLocation'" -replace '\$subscriptionId',"'$Env:subscriptionId'" | Set-Content -Path "$Env:agentScript\installArcAgentModifiedUbuntu.sh"
-(Get-Content -path "$Env:agentScript\installArcAgentCentOS.sh" -Raw) -replace '\$spnClientId',"'$Env:spnClientId'" -replace '\$spnClientSecret',"'$Env:spnClientSecret'" -replace '\$resourceGroup',"'$Env:resourceGroup'" -replace '\$spnTenantId',"'$Env:spnTenantId'" -replace '\$azureLocation',"'$Env:azureLocation'" -replace '\$subscriptionId',"'$Env:subscriptionId'" | Set-Content -Path "$Env:agentScript\installArcAgentModifiedCentOS.sh"
+(Get-Content -path "$agentScript\installArcAgent.ps1" -Raw) -replace '\$spnClientId',"'$Env:spnClientId'" -replace '\$spnClientSecret',"'$Env:spnClientSecret'" -replace '\$resourceGroup',"'$Env:resourceGroup'" -replace '\$spnTenantId',"'$Env:spnTenantId'" -replace '\$azureLocation',"'$Env:azureLocation'" -replace '\$subscriptionId',"'$Env:subscriptionId'" | Set-Content -Path "$agentScript\installArcAgentModified.ps1"
+(Get-Content -path "$agentScript\installArcAgentUbuntu.sh" -Raw) -replace '\$spnClientId',"'$Env:spnClientId'" -replace '\$spnClientSecret',"'$Env:spnClientSecret'" -replace '\$resourceGroup',"'$Env:resourceGroup'" -replace '\$spnTenantId',"'$Env:spnTenantId'" -replace '\$azureLocation',"'$Env:azureLocation'" -replace '\$subscriptionId',"'$Env:subscriptionId'" | Set-Content -Path "$agentScript\installArcAgentModifiedUbuntu.sh"
+(Get-Content -path "$agentScript\installArcAgentCentOS.sh" -Raw) -replace '\$spnClientId',"'$Env:spnClientId'" -replace '\$spnClientSecret',"'$Env:spnClientSecret'" -replace '\$resourceGroup',"'$Env:resourceGroup'" -replace '\$spnTenantId',"'$Env:spnTenantId'" -replace '\$azureLocation',"'$Env:azureLocation'" -replace '\$subscriptionId',"'$Env:subscriptionId'" | Set-Content -Path "$agentScript\installArcAgentModifiedCentOS.sh"
 
 # Create appropriate onboard script to SQL VM depending on whether or not the Service Principal has permission to peroperly onboard it to Azure Arc
 if(-not $hasPermission) {
-    (Get-Content -path "$Env:agentScript\installArcAgent.ps1" -Raw) -replace '\$spnClientId',"'$Env:spnClientId'" -replace '\$spnClientSecret',"'$Env:spnClientSecret'" -replace '\$resourceGroup',"'$Env:resourceGroup'" -replace '\$spnTenantId',"'$Env:spnTenantId'" -replace '\$azureLocation',"'$Env:azureLocation'" -replace '\$subscriptionId',"'$Env:subscriptionId'" | Set-Content -Path "$Env:agentScript\installArcAgentSQLModified.ps1"
+    (Get-Content -path "$agentScript\installArcAgent.ps1" -Raw) -replace '\$spnClientId',"'$Env:spnClientId'" -replace '\$spnClientSecret',"'$Env:spnClientSecret'" -replace '\$resourceGroup',"'$Env:resourceGroup'" -replace '\$spnTenantId',"'$Env:spnTenantId'" -replace '\$azureLocation',"'$Env:azureLocation'" -replace '\$subscriptionId',"'$Env:subscriptionId'" | Set-Content -Path "$agentScript\installArcAgentSQLModified.ps1"
 } else {
-    (Get-Content -path "$Env:agentScript\installArcAgentSQLSP.ps1" -Raw) -replace '\$spnClientId',"'$Env:spnClientId'" -replace '\$spnClientSecret',"'$Env:spnClientSecret'" -replace '\$myResourceGroup',"'$Env:resourceGroup'" -replace '\$spnTenantId',"'$Env:spnTenantId'" -replace '\$azureLocation',"'$Env:azureLocation'" -replace '\$subscriptionId',"'$Env:subscriptionId'" -replace '\$logAnalyticsWorkspaceName',"'$Env:workspaceName'" | Set-Content -Path "$Env:agentScript\installArcAgentSQLModified.ps1"
+    (Get-Content -path "$agentScript\installArcAgentSQLSP.ps1" -Raw) -replace '\$spnClientId',"'$Env:spnClientId'" -replace '\$spnClientSecret',"'$Env:spnClientSecret'" -replace '\$myResourceGroup',"'$Env:resourceGroup'" -replace '\$spnTenantId',"'$Env:spnTenantId'" -replace '\$azureLocation',"'$Env:azureLocation'" -replace '\$subscriptionId',"'$Env:subscriptionId'" -replace '\$logAnalyticsWorkspaceName',"'$Env:workspaceName'" | Set-Content -Path "$agentScript\installArcAgentSQLModified.ps1"
 }
 
 Write-Header "Copying Onboarding Scripts"
 
 # Copy installtion script to nested Windows VMs
 Write-Output "Transferring installation script to nested Windows VMs..."
-Copy-VMFile ArcBox-Win2K19 -SourcePath "$Env:agentScript\installArcAgentModified.ps1" -DestinationPath C:\ArcBox\installArcAgent.ps1 -CreateFullPath -FileSource Host
-Copy-VMFile ArcBox-Win2K22 -SourcePath "$Env:agentScript\installArcAgentModified.ps1" -DestinationPath C:\ArcBox\installArcAgent.ps1 -CreateFullPath -FileSource Host
-Copy-VMFile ArcBox-SQL -SourcePath "$Env:agentScript\installArcAgentSQLModified.ps1" -DestinationPath C:\ArcBox\installArcAgentSQL.ps1 -CreateFullPath -FileSource Host
+Copy-VMFile ArcBox-Win2K19 -SourcePath "$agentScript\installArcAgentModified.ps1" -DestinationPath C:\ArcBox\installArcAgent.ps1 -CreateFullPath -FileSource Host
+Copy-VMFile ArcBox-Win2K22 -SourcePath "$agentScript\installArcAgentModified.ps1" -DestinationPath C:\ArcBox\installArcAgent.ps1 -CreateFullPath -FileSource Host
+Copy-VMFile ArcBox-SQL -SourcePath "$agentScript\installArcAgentSQLModified.ps1" -DestinationPath C:\ArcBox\installArcAgentSQL.ps1 -CreateFullPath -FileSource Host
 
 # Copy installtion script to nested Linux VMs
 Write-Output "Transferring installation script to nested Linux VMs..."
-Set-SCPItem -ComputerName $UbuntuVmIp -Credential $linCreds -Destination "/home/$nestedLinuxUsername" -Path "$Env:agentScript\installArcAgentModifiedUbuntu.sh" -Force
-Set-SCPItem -ComputerName $CentOSVmIp -Credential $linCreds -Destination "/home/$nestedLinuxUsername" -Path "$Env:agentScript\installArcAgentModifiedCentOS.sh" -Force
+Set-SCPItem -ComputerName $UbuntuVmIp -Credential $linCreds -Destination "/home/$nestedLinuxUsername" -Path "$agentScript\installArcAgentModifiedUbuntu.sh" -Force
+Set-SCPItem -ComputerName $CentOSVmIp -Credential $linCreds -Destination "/home/$nestedLinuxUsername" -Path "$agentScript\installArcAgentModifiedCentOS.sh" -Force
 
 Write-Header "Onboarding Arc-enabled Servers"
 
@@ -185,13 +196,13 @@ Write-Output "Onboarding the nested Linux VMs as an Azure Arc-enabled servers"
 
 $ubuntuSession = New-SSHSession -ComputerName $UbuntuVmIp -Credential $linCreds -Force -WarningAction SilentlyContinue
 $Command = "sudo sh /home/$nestedLinuxUsername/installArcAgentModifiedUbuntu.sh"
-$(Invoke-SSHCommand -SSHSession $ubuntuSession -Command $Command -Timeout 600 -WarningAction SilentlyContinue).Output
+$(Invoke-SSHCommand -SSHSession $ubuntuSession -Command $Command -Timeout 360 -WarningAction SilentlyContinue).Output
 
 # Onboarding nested CentOS server VM
 Start-Sleep -Seconds 20
 $centosSession = New-SSHSession -ComputerName $CentOSVmIp -Credential $linCreds -Force -WarningAction SilentlyContinue
 $Command = "sudo sh /home/$nestedLinuxUsername/installArcAgentModifiedCentOS.sh"
-$(Invoke-SSHCommand -SSHSession $centosSession -Command $Command -TimeOut 600 -WarningAction SilentlyContinue).Output
+$(Invoke-SSHCommand -SSHSession $centosSession -Command $Command -TimeOut 360 -WarningAction SilentlyContinue).Output
 
 # Creating Hyper-V Manager desktop shortcut
 Write-Header "Creating Hyper-V Shortcut"

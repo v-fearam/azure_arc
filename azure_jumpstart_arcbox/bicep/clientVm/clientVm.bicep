@@ -185,9 +185,21 @@ resource vmBootstrap 'Microsoft.Compute/virtualMachines/extensions@2021-07-01' =
     autoUpgradeMinorVersion: true
     settings: {
       fileUris: [
-        uri(templateBaseUrl, 'artifacts/Bootstrap.ps1')
+        uri(templateBaseUrl, 'artifacts/MyBootstrap.ps1')
+        uri(templateBaseUrl, '../common/script/powershell/downloadFiles-v1.ps1')
+        uri(templateBaseUrl, '../common/script/powershell/setPSProfile-v1.ps1')
+        uri(templateBaseUrl, '../common/script/powershell/installChocoApps-v1.ps1')
+        uri(templateBaseUrl, '../common/script/powershell/installModules-v1.ps1')
+        uri(templateBaseUrl, '../common/script/powershell/configuringLogonScripts-v1.ps1')
+        uri(templateBaseUrl, '../common/script/powershell/installHyperVAndReboot-v1.ps1') 
+        uri(templateBaseUrl, '../common/script/powershell/downloadScriptDependencies-v1.ps1') 
+        uri(templateBaseUrl, 'common/script/powershell/devopsProfile-v1.ps1')
+        uri(templateBaseUrl, 'common/script/powershell/itproProfile-v1.ps1')
+        uri(templateBaseUrl, 'common/script/powershell/fullProfile-v1.ps1')
+        uri(templateBaseUrl, 'common/script/powershell/itproFullProfile-v1.ps1') 
+        uri(templateBaseUrl, 'common/script/powershell/arcboxPaths-v1.ps1') 
       ]
-      commandToExecute: 'powershell.exe -ExecutionPolicy Bypass -File Bootstrap.ps1 -adminUsername ${windowsAdminUsername} -spnClientId ${spnClientId} -spnClientSecret ${spnClientSecret} -spnTenantId ${spnTenantId} -spnAuthority ${spnAuthority} -subscriptionId ${subscription().subscriptionId} -resourceGroup ${resourceGroup().name} -azdataUsername ${azdataUsername} -azdataPassword ${azdataPassword} -acceptEula ${acceptEula} -registryUsername ${registryUsername} -registryPassword ${registryPassword} -arcDcName ${arcDcName} -azureLocation ${location} -mssqlmiName ${mssqlmiName} -POSTGRES_NAME ${postgresName} -POSTGRES_WORKER_NODE_COUNT ${postgresWorkerNodeCount} -POSTGRES_DATASIZE ${postgresDatasize} -POSTGRES_SERVICE_TYPE ${postgresServiceType} -stagingStorageAccountName ${stagingStorageAccountName} -workspaceName ${workspaceName} -templateBaseUrl ${templateBaseUrl} -flavor ${flavor} -capiArcDataClusterName ${capiArcDataClusterName} -k3sArcClusterName ${k3sArcClusterName} -githubUser ${githubUser}'
+      commandToExecute: 'powershell.exe -ExecutionPolicy Bypass -File MyBootstrap.ps1 -adminUsername ${windowsAdminUsername} -spnClientId ${spnClientId} -spnClientSecret ${spnClientSecret} -spnTenantId ${spnTenantId} -spnAuthority ${spnAuthority} -subscriptionId ${subscription().subscriptionId} -resourceGroup ${resourceGroup().name} -azdataUsername ${azdataUsername} -azdataPassword ${azdataPassword} -acceptEula ${acceptEula} -registryUsername ${registryUsername} -registryPassword ${registryPassword} -arcDcName ${arcDcName} -azureLocation ${location} -mssqlmiName ${mssqlmiName} -POSTGRES_NAME ${postgresName} -POSTGRES_WORKER_NODE_COUNT ${postgresWorkerNodeCount} -POSTGRES_DATASIZE ${postgresDatasize} -POSTGRES_SERVICE_TYPE ${postgresServiceType} -stagingStorageAccountName ${stagingStorageAccountName} -workspaceName ${workspaceName} -templateBaseUrl ${templateBaseUrl} -flavor ${flavor} -capiArcDataClusterName ${capiArcDataClusterName} -k3sArcClusterName ${k3sArcClusterName} -githubUser ${githubUser}'
     }
   }
 }

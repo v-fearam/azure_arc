@@ -1,4 +1,9 @@
-. C:\ArcBox\common\script\powershell\arcboxPaths-v1.ps1
+$Env:TempDir = "C:\Temp"
+$Env:ToolsDir = "C:\Tools"
+$Env:ArcBoxDir = "C:\ArcBox"
+$Env:ArcBoxLogsDir = "C:\ArcBox\Logs"
+$Env:ArcBoxKVDir = "C:\ArcBox\KeyVault"
+$Env:ArcBoxIconDir = "C:\ArcBox\Icons"
 
 $osmRelease = "v1.1.0"
 $osmMeshName = "osm"
@@ -10,21 +15,64 @@ $certdns = "arcbox.devops.com"
 $appClonedRepo = "https://github.com/$Env:githubUser/azure-arc-jumpstart-apps"
 
 Start-Transcript -Path $Env:ArcBoxLogsDir\DevOpsLogonScript.log
-. $Env:PowerShellCommonScripts\azureConfigDir-v1.ps1
-. $Env:PowerShellCommonScripts\loginAzureTools-v1.ps1
-. $Env:PowerShellCommonScripts\downloadCapiFiles-v1.ps1
-. $Env:PowerShellCommonScripts\downloadRancherK3sFiles-v1.ps1
-. $Env:PowerShellCommonScripts\mergingCAPI-K3sKubeconfigs-v1.ps1
 
-Azure-Config-Directory $Env:ArcBoxDir  ".devops"
+$cliDir = New-Item -Path "$Env:ArcBoxDir\.cli\" -Name ".devops" -ItemType Directory
 
-Arbox-Login-Azure-Tools
+if(-not $($cliDir.Parent.Attributes.HasFlag([System.IO.FileAttributes]::Hidden))) {
+    $folder = Get-Item $cliDir.Parent.FullName -ErrorAction SilentlyContinue
+    $folder.Attributes += [System.IO.FileAttributes]::Hidden
+}
 
-Download-CAPI-Files
+$Env:AZURE_CONFIG_DIR = $cliDir.FullName
 
-Download-RancherK3s-Files
+# Required for CLI commands
+Write-Header "Az CLI Login"
+az login --service-principal --username $Env:spnClientID --password $Env:spnClientSecret --tenant $Env:spnTenantId
 
-Merging-CAPI-K3s-Kubeconfigs
+# Required for azcopy
+$azurePassword = ConvertTo-SecureString $Env:spnClientSecret -AsPlainText -Force
+$psCred = New-Object System.Management.Automation.PSCredential($Env:spnClientID , $azurePassword)
+Connect-AzAccount -Credential $psCred -TenantId $Env:spnTenantId -ServicePrincipal
+
+# Downloading CAPI Kubernetes cluster kubeconfig file
+Write-Header "Downloading CAPI K8s Kubeconfig"
+$sourceFile = "https://$Env:stagingStorageAccountName.blob.core.windows.net/staging-capi/config"
+$context = (Get-AzStorageAccount -ResourceGroupName $Env:resourceGroup).Context
+$sas = New-AzStorageAccountSASToken -Context $context -Service Blob -ResourceType Object -Permission racwdlup
+$sourceFile = $sourceFile + $sas
+azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "C:\Users\$Env:USERNAME\.kube\config"
+
+# Downloading Rancher K3s cluster kubeconfig file
+Write-Header "Downloading K3s Kubeconfig"
+$sourceFile = "https://$Env:stagingStorageAccountName.blob.core.windows.net/staging-k3s/config"
+$context = (Get-AzStorageAccount -ResourceGroupName $Env:resourceGroup).Context
+$sas = New-AzStorageAccountSASToken -Context $context -Service Blob -ResourceType Object -Permission racwdlup
+$sourceFile = $sourceFile + $sas
+azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "C:\Users\$Env:USERNAME\.kube\config-k3s"
+
+# Downloading 'installCAPI.log' log file
+Write-Header "Downloading CAPI Install Logs"
+$sourceFile = "https://$Env:stagingStorageAccountName.blob.core.windows.net/staging-capi/installCAPI.log"
+$sourceFile = $sourceFile + $sas
+azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "$Env:ArcBoxLogsDir\installCAPI.log"
+
+# Downloading 'installK3s.log' log file
+Write-Header "Downloading K3s Install Logs"
+$sourceFile = "https://$Env:stagingStorageAccountName.blob.core.windows.net/staging-k3s/installK3s.log"
+$sourceFile = $sourceFile + $sas
+azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "$Env:ArcBoxLogsDir\installK3s.log"
+
+# Merging kubeconfig files from CAPI and Rancher K3s
+Write-Header "Merging CAPI & K3s Kubeconfigs"
+Copy-Item -Path "C:\Users\$Env:USERNAME\.kube\config" -Destination "C:\Users\$Env:USERNAME\.kube\config.backup"
+$Env:KUBECONFIG="C:\Users\$Env:USERNAME\.kube\config;C:\Users\$Env:USERNAME\.kube\config-k3s"
+kubectl config view --raw > C:\users\$Env:USERNAME\.kube\config_tmp
+kubectl config get-clusters --kubeconfig=C:\users\$Env:USERNAME\.kube\config_tmp
+Remove-Item -Path "C:\Users\$Env:USERNAME\.kube\config"
+Remove-Item -Path "C:\Users\$Env:USERNAME\.kube\config-k3s"
+Move-Item -Path "C:\Users\$Env:USERNAME\.kube\config_tmp" -Destination "C:\users\$Env:USERNAME\.kube\config"
+$Env:KUBECONFIG="C:\users\$Env:USERNAME\.kube\config"
+kubectx
 
 # "Download OSM binaries"
 Write-Header "Downloading OSM Binaries"
@@ -33,12 +81,12 @@ Expand-Archive "$Env:TempDir\osm-$osmRelease-windows-amd64.zip" -DestinationPath
 Copy-Item "$Env:TempDir\windows-amd64\osm.exe" -Destination $Env:ToolsDir
 
 Write-Header "Adding Tools Folder to PATH"
-[System.Environment]::SetEnvironmentVariable('PATH', $Env:PATH + ";$Env:ToolsDir" , [System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable('PATH', $Env:PATH + ";$Env:ToolsDir" ,[System.EnvironmentVariableTarget]::Machine)
 $Env:PATH += ";$Env:ToolsDir"
 
 # Create random 13 character string for Key Vault name
 $strLen = 13
-$randStr = ( -join ((0x30..0x39) + (0x61..0x7A) | Get-Random -Count $strLen | ForEach-Object { [char]$_ }))
+$randStr = (-join ((0x30..0x39) + (0x61..0x7A) | Get-Random -Count $strLen | ForEach-Object {[char]$_}))
 $Env:keyVaultName = "ArcBox-KV-$randStr"
 
 [System.Environment]::SetEnvironmentVariable('keyVaultName', $Env:keyVaultName, [System.EnvironmentVariableTarget]::Machine)
@@ -78,7 +126,7 @@ osm namespace add "$ingressNamespace" --mesh-name "$osmMeshName" --disable-sidec
 # - Apply GitOps Configs
 #############################
 
-Write-Header "Applying GitOps Configs"
+Write-Header "Applying GotOps Configs"
 
 # Create GitOps config for NGINX Ingress Controller
 Write-Host "Creating GitOps config for NGINX Ingress Controller"
@@ -163,12 +211,12 @@ az k8s-extension create --name 'akvsecretsprovider' --extension-type Microsoft.A
 
 # Replace Variable values
 Get-ChildItem -Path $Env:ArcBoxKVDir |
-ForEach-Object {
+    ForEach-Object {
         (Get-Content -path $_.FullName -Raw) -Replace '\{JS_CERTNAME}', $certname | Set-Content -Path $_.FullName
         (Get-Content -path $_.FullName -Raw) -Replace '\{JS_KEYVAULTNAME}', $Env:keyVaultName | Set-Content -Path $_.FullName
         (Get-Content -path $_.FullName -Raw) -Replace '\{JS_HOST}', $certdns | Set-Content -Path $_.FullName
         (Get-Content -path $_.FullName -Raw) -Replace '\{JS_TENANTID}', $Env:spnTenantId | Set-Content -Path $_.FullName
-}
+    }
 
 Write-Header "Creating Ingress Controller"
 
@@ -190,16 +238,16 @@ Add-Content -Path $Env:windir\System32\drivers\etc\hosts -Value "`n`t$ip`t$certd
 Write-Header "Configuring Edge Policies"
 
 # Disable Edge 'First Run' Setup
-$edgePolicyRegistryPath = 'HKLM:SOFTWARE\Policies\Microsoft\Edge'
+$edgePolicyRegistryPath  = 'HKLM:SOFTWARE\Policies\Microsoft\Edge'
 $desktopSettingsRegistryPath = 'HKCU:SOFTWARE\Microsoft\Windows\Shell\Bags\1\Desktop'
-$firstRunRegistryName = 'HideFirstRunExperience'
+$firstRunRegistryName  = 'HideFirstRunExperience'
 $firstRunRegistryValue = '0x00000001'
 $savePasswordRegistryName = 'PasswordManagerEnabled'
 $savePasswordRegistryValue = '0x00000000'
 $autoArrangeRegistryName = 'FFlags'
 $autoArrangeRegistryValue = '1075839525'
 
-If (-NOT (Test-Path -Path $edgePolicyRegistryPath)) {
+ If (-NOT (Test-Path -Path $edgePolicyRegistryPath)) {
     New-Item -Path $edgePolicyRegistryPath -Force | Out-Null
 }
 
@@ -218,7 +266,7 @@ $shortcutLocation = "$Env:Public\Desktop\CAPI Hello-Arc.lnk"
 $wScriptShell = New-Object -ComObject WScript.Shell
 $shortcut = $wScriptShell.CreateShortcut($shortcutLocation)
 $shortcut.TargetPath = "https://$certdns"
-$shortcut.IconLocation = "$Env:ArcBoxIconDir\arc.ico, 0"
+$shortcut.IconLocation="$Env:ArcBoxIconDir\arc.ico, 0"
 $shortcut.WindowStyle = 3
 $shortcut.Save()
 
@@ -227,8 +275,8 @@ $shortcutLocation = "$Env:Public\Desktop\CAPI Bookstore.lnk"
 $wScriptShell = New-Object -ComObject WScript.Shell
 $shortcut = $wScriptShell.CreateShortcut($shortcutLocation)
 $shortcut.TargetPath = "powershell.exe"
-$shortcut.Arguments = "-ExecutionPolicy Bypass -File $Env:ArcBoxDir\BookStoreLaunch.ps1"
-$shortcut.IconLocation = "$Env:ArcBoxIconDir\bookstore.ico, 0"
+$shortcut.Arguments =  "-ExecutionPolicy Bypass -File $Env:ArcBoxDir\BookStoreLaunch.ps1"
+$shortcut.IconLocation="$Env:ArcBoxIconDir\bookstore.ico, 0"
 $shortcut.WindowStyle = 7
 $shortcut.Save()
 
@@ -250,15 +298,12 @@ namespace Win32{
 
 $ArcServersLogonScript = Get-WmiObject win32_process -filter 'name="powershell.exe"' | Select-Object CommandLine | ForEach-Object { $_ | Select-String "ArcServersLogonScript.ps1" }
 
-if (-not $ArcServersLogonScript) {
+if(-not $ArcServersLogonScript) {
     Write-Header "Changing Wallpaper"
-    $imgPath = "$Env:ArcBoxDir\wallpaper.png"
-    Write-Output $imgPath
+    $imgPath="$Env:ArcBoxDir\wallpaper.png"
     Add-Type $code 
     [Win32.Wallpaper]::SetWallpaper($imgPath)
-    Get-ItemProperty -path 'HKCU:\Control Panel\Desktop' | Select-Object -Property WallPaper
 }
-
 
 # Removing the LogonScript Scheduled Task so it won't run on next reboot
 Write-Header "Removing Logon Task"
