@@ -170,6 +170,15 @@ else
    validations=false
 fi
 
+wallpaper=$(plink -ssh -P 2204 $windowsAdminUsername@$(az vm show -d -g "$resourceGroup" -n ArcBox-Client --query publicIps -o tsv) -pw "$windowsAdminSecret" -batch  "powershell (Get-ItemProperty -path 'HKCU:\Control Panel\Desktop')" | grep -h  'WallPaper')
+echo "WallPaper found: $wallpaper"
+wallpaperCount=$(plink -ssh -P 2204 $windowsAdminUsername@$(az vm show -d -g "$resourceGroup" -n ArcBox-Client --query publicIps -o tsv) -pw "$windowsAdminSecret" -batch  "powershell (Get-ItemProperty -path 'HKCU:\Control Panel\Desktop')" | grep -h  'WallPaper' | grep -h  'wallpaper.png' -c)
+if [ $wallpaperCount = "1" ]; then
+  echo "Expected wallpaper"
+else
+  echo "Error, the wallpaper found was unexpected"
+fi
+
 if [ "$validations" = "false" ]; then
    echo "Something was wrong. Failing"
    exit 1
