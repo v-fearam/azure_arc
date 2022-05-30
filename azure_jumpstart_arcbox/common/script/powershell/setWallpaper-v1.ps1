@@ -15,7 +15,11 @@
 .EXAMPLE
   Set-WallPapper "ArcServersLogonScript.ps1"
 #>
-
+Function Set-WallPaper-Internal($Value) {
+        Set-ItemProperty -path 'HKCU:\Control Panel\Desktop\' -name WallPaper -value $value
+        RUNDLL32.EXE USER32.DLL, UpdatePerUserSystemParameters , 1 , True
+}
+   
 function Set-WallPapper {
     param(
         [string] $scriptToCheck
@@ -41,8 +45,13 @@ namespace Win32{
     if (-not $anotherScriptCheck) {
         Write-Header "Changing Wallpaper"
         $imgPath = "$Env:ArcBoxDir\wallpaper.png"
+        Write-Output $imgPath
         Add-Type $code
+        Get-ItemProperty -path 'HKCU:\Control Panel\Desktop' | Select-Object -Property WallPaper
         [Win32.Wallpaper]::SetWallpaper($imgPath)
+        Get-ItemProperty -path 'HKCU:\Control Panel\Desktop' | Select-Object -Property WallPaper
+        Set-WallPaper-Internal($imgPath)
+        Get-ItemProperty -path 'HKCU:\Control Panel\Desktop' | Select-Object -Property WallPaper
     }
 }
   
