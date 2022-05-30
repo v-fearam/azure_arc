@@ -15,6 +15,7 @@ Start-Transcript -Path $Env:ArcBoxLogsDir\DevOpsLogonScript.log
 . $Env:PowerShellCommonScripts\downloadCapiFiles-v1.ps1
 . $Env:PowerShellCommonScripts\downloadRancherK3sFiles-v1.ps1
 . $Env:PowerShellCommonScripts\mergingCAPI-K3sKubeconfigs-v1.ps1
+. $Env:PowerShellCommonScripts\setWallpaper-v1.ps1
 
 Azure-Config-Directory $Env:ArcBoxDir  ".devops"
 
@@ -232,33 +233,7 @@ $shortcut.IconLocation = "$Env:ArcBoxIconDir\bookstore.ico, 0"
 $shortcut.WindowStyle = 7
 $shortcut.Save()
 
-# Changing to Jumpstart ArcBox wallpaper
-$code = @' 
-using System.Runtime.InteropServices; 
-namespace Win32{ 
-    
-     public class Wallpaper{ 
-        [DllImport("user32.dll", CharSet=CharSet.Auto)] 
-         static extern int SystemParametersInfo (int uAction , int uParam , string lpvParam , int fuWinIni) ; 
-         
-         public static void SetWallpaper(string thePath){ 
-            SystemParametersInfo(20,0,thePath,3); 
-         }
-    }
- } 
-'@
-
-$ArcServersLogonScript = Get-WmiObject win32_process -filter 'name="powershell.exe"' | Select-Object CommandLine | ForEach-Object { $_ | Select-String "ArcServersLogonScript.ps1" }
-
-if (-not $ArcServersLogonScript) {
-    Write-Header "Changing Wallpaper"
-    $imgPath = "$Env:ArcBoxDir\wallpaper.png"
-    Write-Output $imgPath
-    Add-Type $code 
-    [Win32.Wallpaper]::SetWallpaper($imgPath)
-    Get-ItemProperty -path 'HKCU:\Control Panel\Desktop' | Select-Object -Property WallPaper
-}
-
+Set-WallPapper "ArcServersLogonScript.ps1"
 
 # Removing the LogonScript Scheduled Task so it won't run on next reboot
 Write-Header "Removing Logon Task"
