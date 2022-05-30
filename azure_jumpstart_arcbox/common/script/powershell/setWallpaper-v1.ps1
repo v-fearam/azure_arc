@@ -43,15 +43,18 @@ namespace Win32{
     $anotherScriptCheck = Get-WmiObject win32_process -filter 'name="powershell.exe"' | Select-Object CommandLine | ForEach-Object { $_ | Select-String "$scriptToCheck" }
 
     if (-not $anotherScriptCheck) {
-        Write-Header "Changing Wallpaper"
+        Write-Header "Changing Wallpaper 1"
         $imgPath = "$Env:ArcBoxDir\wallpaper.png"
-        Write-Output $imgPath
+        Write-Header "$imgPath"
         Add-Type $code
-        Get-ItemProperty -path 'HKCU:\Control Panel\Desktop' | Select-Object -Property WallPaper
+        $variable=Get-ItemProperty -path 'HKCU:\Control Panel\Desktop' | Select-Object -Property WallPaper
+        Write-Header "$variable"
         [Win32.Wallpaper]::SetWallpaper($imgPath)
-        Get-ItemProperty -path 'HKCU:\Control Panel\Desktop' | Select-Object -Property WallPaper
-        Set-WallPaper-Internal($imgPath)
-        Get-ItemProperty -path 'HKCU:\Control Panel\Desktop' | Select-Object -Property WallPaper
+        $variable=Get-ItemProperty -path 'HKCU:\Control Panel\Desktop' | Select-Object -Property WallPaper
+        Write-Header "$variable"
+        Set-WallPaper-Internal -value $imgPath
+        $variable=Get-ItemProperty -path 'HKCU:\Control Panel\Desktop' | Select-Object -Property WallPaper
+        Write-Header "$variable"
     }
 }
   
