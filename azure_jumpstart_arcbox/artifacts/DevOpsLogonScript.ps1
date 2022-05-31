@@ -16,6 +16,7 @@ Start-Transcript -Path $Env:ArcBoxLogsDir\DevOpsLogonScript.log
 . $Env:PowerShellCommonScripts\downloadRancherK3sFiles-v1.ps1
 . $Env:PowerShellCommonScripts\mergingCAPI-K3sKubeconfigs-v1.ps1
 . $Env:PowerShellCommonScripts\setWallpaper-v1.ps1
+. $Env:PowerShellCommonScripts\creatingDesktopShortcut-v1.ps1
 
 Azure-Config-Directory $Env:ArcBoxDir  ".devops"
 
@@ -215,23 +216,10 @@ New-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Edge\ExtensionInstallFo
 Write-Header "Creating Desktop Icons"
 
 # Creating CAPI Hello Arc Icon on Desktop
-$shortcutLocation = "$Env:Public\Desktop\CAPI Hello-Arc.lnk"
-$wScriptShell = New-Object -ComObject WScript.Shell
-$shortcut = $wScriptShell.CreateShortcut($shortcutLocation)
-$shortcut.TargetPath = "https://$certdns"
-$shortcut.IconLocation = "$Env:ArcBoxIconDir\arc.ico, 0"
-$shortcut.WindowStyle = 3
-$shortcut.Save()
+Creating-Desktop-Shortcut -shortcutName "CAPI Hello-Arc" -icon "arc" -targetPath "https://$certdns"
 
 # Creating CAPI Bookstore Icon on Desktop
-$shortcutLocation = "$Env:Public\Desktop\CAPI Bookstore.lnk"
-$wScriptShell = New-Object -ComObject WScript.Shell
-$shortcut = $wScriptShell.CreateShortcut($shortcutLocation)
-$shortcut.TargetPath = "powershell.exe"
-$shortcut.Arguments = "-ExecutionPolicy Bypass -File $Env:ArcBoxDir\BookStoreLaunch.ps1"
-$shortcut.IconLocation = "$Env:ArcBoxIconDir\bookstore.ico, 0"
-$shortcut.WindowStyle = 7
-$shortcut.Save()
+Creating-Desktop-Shortcut -shortcutName "CAPI Bookstore" -icon "bookstore" -targetPath "powershell.exe" -arguments "-ExecutionPolicy Bypass -File $Env:ArcBoxDir\BookStoreLaunch.ps1" -windowsStyle 7
 
 Set-WallPapper "ArcServersLogonScript.ps1"
 

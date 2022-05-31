@@ -135,7 +135,7 @@ Get-ScheduledTask -TaskName ServerManager | Disable-ScheduledTask
 Download-Scripts-Dependencies `
     -origin ($templateBaseUrl) `
     -target ($Env:ArcBoxDir) `
-    -localPS @("arcboxPaths-v1","azureConfigDir-v1","loginAzureTools-v1","downloadCapiFiles-v1","downloadRancherK3sFiles-v1","mergingCAPI-K3sKubeconfigs-v1","setWallpaper-v1")
+    -localPS @("arcboxPaths-v1","azureConfigDir-v1","loginAzureTools-v1","downloadCapiFiles-v1","downloadRancherK3sFiles-v1","mergingCAPI-K3sKubeconfigs-v1","setWallpaper-v1","creatingDesktopShortcut-v1")
 # Install Hyper-V and reboot
 Installing-Hyper-V-And-Restart
 

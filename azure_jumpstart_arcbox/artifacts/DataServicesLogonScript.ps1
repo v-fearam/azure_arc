@@ -8,6 +8,8 @@ Start-Transcript -Path $Env:ArcBoxLogsDir\DataServicesLogonScript.log
 . $Env:PowerShellCommonScripts\downloadRancherK3sFiles-v1.ps1
 . $Env:PowerShellCommonScripts\mergingCAPI-K3sKubeconfigs-v1.ps1
 . $Env:PowerShellCommonScripts\setWallpaper-v1.ps1
+. $Env:PowerShellCommonScripts\creatingDesktopShortcut-v1.ps1
+
 
 Azure-Config-Directory $Env:ArcBoxDir  ".data" 
 
@@ -35,23 +37,13 @@ $Env:argument4="Microsoft.arc"
 
 # Create Azure Data Studio desktop shortcut
 Write-Header "Creating Azure Data Studio Desktop Shortcut"
-$TargetFile = "C:\Program Files\Azure Data Studio\azuredatastudio.exe"
-$ShortcutFile = "C:\Users\$Env:adminUsername\Desktop\Azure Data Studio.lnk"
-$WScriptShell = New-Object -ComObject WScript.Shell
-$Shortcut = $WScriptShell.CreateShortcut($ShortcutFile)
-$Shortcut.TargetPath = $TargetFile
-$Shortcut.Save()
+Creating-Desktop-Shortcut -shortcutName "Azure Data Studio" -username $Env:adminUsername -targetPath "C:\Program Files\Azure Data Studio\azuredatastudio.exe"
 
 # Creating Microsoft SQL Server Management Studio (SSMS) desktop shortcut
 Write-Host "`n"
 Write-Host "Creating Microsoft SQL Server Management Studio (SSMS) desktop shortcut"
 Write-Host "`n"
-$TargetFile = "C:\Program Files (x86)\Microsoft SQL Server Management Studio 18\Common7\IDE\ssms.exe"
-$ShortcutFile = "C:\Users\$Env:adminUsername\Desktop\Microsoft SQL Server Management Studio 18.lnk"
-$WScriptShell = New-Object -ComObject WScript.Shell
-$Shortcut = $WScriptShell.CreateShortcut($ShortcutFile)
-$Shortcut.TargetPath = $TargetFile
-$Shortcut.Save()
+Creating-Desktop-Shortcut -shortcutName "Microsoft SQL Server Management Studio 18" -username $Env:adminUsername -targetPath "C:\Program Files (x86)\Microsoft SQL Server Management Studio 18\Common7\IDE\ssms.exe"
 
 Download-CAPI-Files
 
