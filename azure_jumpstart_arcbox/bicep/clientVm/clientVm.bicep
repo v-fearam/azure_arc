@@ -193,9 +193,9 @@ resource vmBootstrap 'Microsoft.Compute/virtualMachines/extensions@2021-07-01' =
         uri(templateBaseUrl, '../common/script/powershell/configuringLogonScripts-v1.ps1')
         uri(templateBaseUrl, '../common/script/powershell/installHyperVAndReboot-v1.ps1') 
         uri(templateBaseUrl, '../common/script/powershell/downloadScriptDependencies-v1.ps1') 
-        uri(templateBaseUrl, 'common/script/powershell/devopsProfile-v1.ps1')
-        uri(templateBaseUrl, 'common/script/powershell/itproProfile-v1.ps1')
-        uri(templateBaseUrl, 'common/script/powershell/fullProfile-v1.ps1')
+        uri(templateBaseUrl, 'common/script/powershell/profileDevOps-v1.ps1')
+        uri(templateBaseUrl, 'common/script/powershell/profileITPro-v1.ps1')
+        uri(templateBaseUrl, 'common/script/powershell/profileFull-v1.ps1')
         uri(templateBaseUrl, 'common/script/powershell/itproFullProfile-v1.ps1') 
         uri(templateBaseUrl, 'common/script/powershell/arcboxPaths-v1.ps1') 
       ]

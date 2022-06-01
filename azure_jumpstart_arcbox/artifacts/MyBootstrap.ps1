@@ -108,20 +108,8 @@ Download-Files ($templateBaseUrl + "artifacts")  @("LogInstructions.txt") $Env:A
 
 Download-Files ($templateBaseUrl + "../tests/")  @("GHActionDeploy.ps1", "OpenSSHDeploy.ps1") $Env:ArcBoxDir
 
-# ITPro
-if ($flavor -eq "ITPro") {
-    . ./itproProfile-v1.ps1
-}
-
-# DevOps
-if ($flavor -eq "DevOps") {
-    . ./devopsProfile-v1.ps1
-}
-
-# Full
-if ($flavor -eq "Full") {
-    . ./fullProfile-v1.ps1
-}
+$file="./profile"+$flavor+"-v1.ps1"
+. ./$file
 
 New-Item -path alias:kubectl -value 'C:\ProgramData\chocolatey\lib\kubernetes-cli\tools\kubernetes\client\bin\kubectl.exe'
 New-Item -path alias:azdata -value 'C:\Program Files (x86)\Microsoft SDKs\Azdata\CLI\wbin\azdata.cmd'
