@@ -90,7 +90,7 @@
   "variables": {
     "templateBaseUrl": "[concat('https://raw.githubusercontent.com/', parameters('githubAccount'), '/azure_arc/', parameters('githubBranch'), '/azure_jumpstart_arcbox/')]",
     "rancherTemplateUrl": "[uri(variables('templateBaseUrl'), 'ARM/kubernetes/ubuntuRancher.json')]",
-    "capiTemplateUrl": "[uri(variables('templateBaseUrl'), 'ARM/kubernetes/ubuntuCapi.json')]",
+    "capiTemplateUrl": "[uri(variables('templateBaseUrl'), '../common/infrastructure/ARM/kubernetes/ubuntuCapi.json')]",
     "clientVmTemplateUrl": "[uri(variables('templateBaseUrl'), 'ARM/clientVm/clientVm.json')]",
     "mgmtTemplateUrl": "[uri(variables('templateBaseUrl'), 'ARM/mgmt/mgmtArtifacts.json')]",
     "mgmtStagingStorageUrl": "[uri(variables('templateBaseUrl'), 'ARM/mgmt/mgmtStagingStorage.json')]"
@@ -127,7 +127,7 @@
           "stagingStorageAccountName": {
             "value": "[reference('stagingStorageAccountDeployment').outputs.storageAccountName.value]"
           },
-          "logAnalyticsWorkspace": {
+          "logAnalyticsWorkspaceName": {
             "value": "[parameters('logAnalyticsWorkspaceName')]"
           },
           "templateBaseUrl": {
@@ -138,6 +138,20 @@
           },
           "flavor": {
             "value": "[parameters('flavor')]"
+          },
+          "virtualNetworkName":{
+            "value": "ArcBox-VNet"
+          },
+          "subnetName":{
+            "value": "ArcBox-Subnet"
+          },
+          "resourceTags":{
+            "value": {
+                "Project": "jumpstart_arcbox"
+            }
+          },
+          "capiArcDataClusterName":{
+            "value": "ArcBox-CAPI-Data"
           }
         }
       }
