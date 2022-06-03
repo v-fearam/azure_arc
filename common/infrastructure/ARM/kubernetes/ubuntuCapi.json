@@ -4,7 +4,6 @@
     "parameters": {
         "vmName": {
             "type": "string",
-            "defaultValue": "ArcBox-CAPI-MGMT",
             "metadata": {
                 "description": "The name of you Virtual Machine"
             }
