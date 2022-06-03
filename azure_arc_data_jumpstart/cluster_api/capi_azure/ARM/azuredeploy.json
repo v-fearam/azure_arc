@@ -241,11 +241,8 @@
           "deployBastion": {
             "value": "[parameters('deployBastion')]"
           },
-          "vmName": {
-            "value": "Arc-Data-CAPI-MGMT"
-          },
-          "capiArcDataClusterName": {
-            "value": "Arc-DataSvc-CAPI"
+          "networkSecurityGroupName": {
+            "value": "Arc-Data-CAPI-MGMT-NSG"
           },
           "virtualNetworkName": {
             "value": "Arc-Data-CAPI-VNet"
