@@ -104,7 +104,7 @@
   },
   "variables": {
     "templateBaseUrl": "[concat('https://raw.githubusercontent.com/', parameters('githubAccount'), '/azure_arc/', parameters('githubBranch'), '/azure_arc_data_jumpstart/cluster_api/capi_azure/ARM/')]",
-    "capiTemplateUrl": "[uri(variables('templateBaseUrl'), '../../../../common/infrastucture/ARM/kubernetes/ubuntuCapi.json')]",
+    "capiTemplateUrl": "[uri(variables('templateBaseUrl'), '../../../../common/infrastructure/ARM/kubernetes/ubuntuCapi.json')]",
     "capiVnetTemplateUrl": "[uri(variables('templateBaseUrl'), 'vnet-CAPI.json')]",
     "clientVmTemplateUrl": "[uri(variables('templateBaseUrl'), 'clientVm.json')]",
     "mgmtStagingStorageUrl": "[uri(variables('templateBaseUrl'), 'mgmtStagingStorage.json')]",
@@ -166,9 +166,6 @@
           "sshRSAPublicKey": {
             "value": "[parameters('sshRSAPublicKey')]"
           },
-          "myIpAddress": {
-            "value": "[parameters('myIpAddress')]"
-          },
           "spnClientId": {
             "value": "[parameters('spnClientId')]"
           },
@@ -186,12 +183,6 @@
           },
           "templateBaseUrl": {
             "value": "[variables('templateBaseUrl')]"
-          },
-          "bastionSubnetPrefix": {
-            "value": "[variables('bastionSubnetPrefix')]"
-          },
-          "bastionHostName": {
-            "value": "[parameters('bastionHostName')]"
           },
           "deployBastion": {
             "value": "[parameters('deployBastion')]"
@@ -235,9 +226,6 @@
           "bastionSubnetPrefix": {
             "value": "[variables('bastionSubnetPrefix')]"
           },
-          "bastionHostName": {
-            "value": "[parameters('bastionHostName')]"
-          },
           "deployBastion": {
             "value": "[parameters('deployBastion')]"
           },
@@ -249,7 +237,7 @@
           },
           "subnetName": {
             "value": "Arc-Data-CAPI-MGMT-Subnet"
-          }
+          }     
         }
       }
     },

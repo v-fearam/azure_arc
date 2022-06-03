@@ -36,7 +36,7 @@
                 "description": "Name of the Network Security Group"
             }
         },
-       "resourceTags": {
+        "resourceTags": {
             "type": "object",
             "defaultValue": {
                 "Project": "jumpstart_azure_arc_data_services"
@@ -57,7 +57,7 @@
             "metadata": {
                 "description": "Choice to deploy Bastion to connect to the client VM"
             },
-            "defaultValue": false
+            "defaultValue": "172.16.1.0/24"
         },
         "addressPrefix": {
             "type": "string",
@@ -95,6 +95,9 @@
             "name": "[parameters('virtualNetworkName')]",
             "location": "[parameters('azureLocation')]",
             "tags": "[parameters('resourceTags')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroupName'))]"
+            ],
             "properties": {
                 "addressSpace": {
                     "addressPrefixes": [
