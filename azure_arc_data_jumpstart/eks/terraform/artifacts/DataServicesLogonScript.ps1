@@ -3,19 +3,11 @@ Start-Transcript -Path C:\Temp\DataServicesLogonScript.log
 # Deployment environment variables
 $connectedClusterName="Arc-Data-EKS-K8s"
 
-Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
+. $Env:tempDir/CommonDataServicesLogonScript.ps1
 
 $azurePassword = ConvertTo-SecureString $env:spnClientSecret -AsPlainText -Force
 $psCred = New-Object System.Management.Automation.PSCredential($env:spnClientId , $azurePassword)
 Connect-AzAccount -Credential $psCred -TenantId $env:spnTenantId -ServicePrincipal
-
-# Login as service principal
-az login --service-principal --username $env:spnClientId --password $env:spnClientSecret --tenant $env:spnTenantId
-
-# Installing Azure CLI arcdata extension
-Write-Host "`n"
-Write-Host "Installing Azure CLI arcdata extension"
-az extension add --name arcdata
 
 # Set default subscription to run commands against
 # "subscriptionId" value comes from clientVM.json ARM template, based on which 
@@ -24,9 +16,9 @@ az extension add --name arcdata
 az account set --subscription $env:subscriptionId
 
 # Installing Azure Data Studio extensions
-Write-Host "`n"
-Write-Host "Installing Azure Data Studio Extensions"
-Write-Host "`n"
+Write-Output "`n"
+Write-Output "Installing Azure Data Studio Extensions"
+Write-Output "`n"
 $Env:argument1="--install-extension"
 $Env:argument2="microsoft.azcli"
 $Env:argument3="microsoft.azuredatastudio-postgresql"
@@ -36,65 +28,58 @@ $Env:argument4="Microsoft.arc"
 & "C:\Program Files\Azure Data Studio\bin\azuredatastudio.cmd" $Env:argument1 $Env:argument4
 
 # Create Azure Data Studio desktop shortcut
-Write-Host "Creating Azure Data Studio Desktop shortcut"
-Write-Host "`n"
-$TargetFile = "C:\Program Files\Azure Data Studio\azuredatastudio.exe"
-$ShortcutFile = "C:\Users\$env:adminUsername\Desktop\Azure Data Studio.lnk"
-$WScriptShell = New-Object -ComObject WScript.Shell
-$Shortcut = $WScriptShell.CreateShortcut($ShortcutFile)
-$Shortcut.TargetPath = $TargetFile
-$Shortcut.Save()
-
+Write-Output "Creating Azure Data Studio Desktop shortcut"
+Write-Output "`n"
+Add-Desktop-Shortcut -shortcutName "Azure Data Studio" -targetPath "C:\Program Files\Azure Data Studio\azuredatastudio.exe" -username $Env:adminUsername
 # Registering Azure Arc providers
-Write-Host "Registering Azure Arc providers, hold tight..."
-Write-Host "`n"
+Write-Output "Registering Azure Arc providers, hold tight..."
+Write-Output "`n"
 az provider register --namespace Microsoft.Kubernetes --wait
 az provider register --namespace Microsoft.KubernetesConfiguration --wait
 az provider register --namespace Microsoft.ExtendedLocation --wait
 az provider register --namespace Microsoft.AzureArcData --wait
 
 az provider show --namespace Microsoft.Kubernetes -o table
-Write-Host "`n"
+Write-Output "`n"
 az provider show --namespace Microsoft.KubernetesConfiguration -o table
-Write-Host "`n"
+Write-Output "`n"
 az provider show --namespace Microsoft.ExtendedLocation -o table
-Write-Host "`n"
+Write-Output "`n"
 az provider show --namespace Microsoft.AzureArcData -o table
-Write-Host "`n"
+Write-Output "`n"
 
 # Adding Azure Arc CLI extensions
-Write-Host "Adding Azure Arc CLI extensions"
-az config set extension.use_dynamic_install=yes_without_prompt
+Write-Output "Adding Azure Arc CLI extensions"
 
-Write-Host "Azure CLI version: "
-Write-Host "`n"
+Write-Output "Azure CLI version: "
+Write-Output "`n"
 az -v
-Write-Host "`n"
+Write-Output "`n"
 
-Write-Host "`n"
-Write-Host "Azure CLI extensions installed: "
+Write-Output "`n"
+Write-Output "Azure CLI extensions installed: "
 az extension list
-Write-Host "`n"
+Write-Output "`n"
 
 # Settings up kubectl
-Write-Host "Setting up the kubectl environment"
-Write-Host "`n"
+Write-Output "Setting up the kubectl environment"
+Write-Output "`n"
 
 kubectl version
 
 # Leverages AWS IAM to get access to EKS Cluster - see https://aws.amazon.com/premiumsupport/knowledge-center/amazon-eks-cluster-access/
 kubectl apply -f "C:\Temp\configmap.yml"
 
-Write-Host "Checking kubernetes nodes"
-Write-Host "`n"
+Write-Output "Checking kubernetes nodes"
+Write-Output "`n"
 kubectl get nodes
-Write-Host "`n"
+Write-Output "`n"
 
 Start-Sleep -Seconds 10
 
 # Onboarding the EKS cluster as an Azure Arc-enabled Kubernetes cluster
-Write-Host "Onboarding the cluster as an Azure Arc-enabled Kubernetes cluster"
-Write-Host "`n"
+Write-Output "Onboarding the cluster as an Azure Arc-enabled Kubernetes cluster"
+Write-Output "`n"
 
 # Monitor pods across namespaces
 $kubectlMonShell = Start-Process -PassThru PowerShell {for (0 -lt 1) {kubectl get pods --all-namespaces; Start-Sleep -Seconds 5; Clear-Host }}
@@ -125,7 +110,7 @@ az k8s-extension create --name arc-data-services `
                         --config Microsoft.CustomLocation.ServiceAccount=sa-arc-bootstrapper `
 
 Do {
-    Write-Host "Waiting for bootstrapper pod, hold tight..."
+    Write-Output "Waiting for bootstrapper pod, hold tight..."
     Start-Sleep -Seconds 20
     $podStatus = $(if(kubectl get pods -n arc | Select-String "bootstrapper" | Select-String "Running" -Quiet){"Ready!"}Else{"Nope"})
     } while ($podStatus -eq "Nope")
@@ -148,8 +133,8 @@ az customlocation create --name 'jumpstart-cl' `
                          --kubeconfig $env:KUBECONFIG
 
 # Deploying Azure Monitor for containers Kubernetes extension instance
-Write-Host "Create Azure Monitor for containers Kubernetes extension instance"
-Write-Host "`n"
+Write-Output "Create Azure Monitor for containers Kubernetes extension instance"
+Write-Output "`n"
 
 az k8s-extension create --name "azuremonitor-containers" `
                         --cluster-name $connectedClusterName `
@@ -158,8 +143,8 @@ az k8s-extension create --name "azuremonitor-containers" `
                         --extension-type Microsoft.AzureMonitor.Containers
 
 # Deploying Azure Defender Kubernetes extension instance
-Write-Host "Create Azure Defender Kubernetes extension instance"
-Write-Host "`n"
+Write-Output "Create Azure Defender Kubernetes extension instance"
+Write-Output "`n"
 az k8s-extension create --name "azure-defender" `
                         --cluster-name $connectedClusterName `
                         --resource-group $env:resourceGroup `
@@ -167,15 +152,15 @@ az k8s-extension create --name "azure-defender" `
                         --extension-type Microsoft.AzureDefender.Kubernetes
 
 # Creating Log Analytics Workspace for Metric Upload
-Write-Host "Deploying Log Analytics Workspace"
-Write-Host "`n"
+Write-Output "Deploying Log Analytics Workspace"
+Write-Output "`n"
 
 az monitor log-analytics workspace create --resource-group $env:resourceGroup `
                                           --workspace-name "jumpstartlaws"
 
 # Deploying Azure Arc Data Controller
-Write-Host "Deploying Azure Arc Data Controller"
-Write-Host "`n"
+Write-Output "Deploying Azure Arc Data Controller"
+Write-Output "`n"
 
 $customLocationId = $(az customlocation show --name "jumpstart-cl" --resource-group $env:resourceGroup --query id -o tsv)
 $workspaceId = $(az resource show --resource-group $env:resourceGroup --name "jumpstartlaws" --resource-type "Microsoft.OperationalInsights/workspaces" --query properties.customerId -o tsv)
@@ -198,19 +183,19 @@ az deployment group create --resource-group $env:resourceGroup `
                            --template-file "C:\Temp\dataController.json" `
                            --parameters "C:\Temp\dataController.parameters.json" `
                            --no-wait
-Write-Host "`n"
+Write-Output "`n"
 
 Do {
-    Write-Host "Waiting for data controller. Hold tight, this might take a few minutes..."
+    Write-Output "Waiting for data controller. Hold tight, this might take a few minutes..."
     Start-Sleep -Seconds 45
     $dcStatus = $(if(kubectl get datacontroller -n arc | Select-String "Ready" -Quiet){"Ready!"}Else{"Nope"})
     } while ($dcStatus -eq "Nope")
-Write-Host "Azure Arc data controller is ready!"
-Write-Host "`n"
+Write-Output "Azure Arc data controller is ready!"
+Write-Output "`n"
 
 # Need to ensure all Data Controller Pods are running before running SQL MI and Postgres deployment
 Do {
-    Write-Host "Ensuring all Data Controller Pods are up..."
+    Write-Output "Ensuring all Data Controller Pods are up..."
     # Gets list of Pods in arc namespaces (all DC related thus far) that are not in "Running" state
 	$podsPending = kubectl get pods -n arc --field-selector=status.phase!=Running -o jsonpath="{.items[*].metadata.name}"
 	# Sets status to "Ready!" only if all pods are "Running"
@@ -218,8 +203,8 @@ Do {
     Start-Sleep -Seconds 30
     } while ($podStatus -eq "Nope")
 
-Write-Host "All data controller pods are ready to go!"
-Write-Host "`n"
+Write-Output "All data controller pods are ready to go!"
+Write-Output "`n"
 
 # If flag set, deploy SQL MI
 if ( $env:deploySQLMI -eq $true )
@@ -234,8 +219,8 @@ if ( $env:deployPostgreSQL -eq $true )
 }
 
 # Enabling data controller auto metrics & logs upload to log analytics
-Write-Host "Enabling data controller auto metrics & logs upload to log analytics"
-Write-Host "`n"
+Write-Output "Enabling data controller auto metrics & logs upload to log analytics"
+Write-Output "`n"
 $Env:WORKSPACE_ID=$(az resource show --resource-group $env:resourceGroup --name $env:workspaceName --resource-type "Microsoft.OperationalInsights/workspaces" --query properties.customerId -o tsv)
 $Env:WORKSPACE_SHARED_KEY=$(az monitor log-analytics workspace get-shared-keys --resource-group $env:resourceGroup --workspace-name $env:workspaceName  --query primarySharedKey -o tsv)
 az arcdata dc update --name jumpstart-dc --resource-group $env:resourceGroup --auto-upload-logs true
@@ -243,7 +228,7 @@ az arcdata dc update --name jumpstart-dc --resource-group $env:resourceGroup --a
 
 # Applying Azure Data Studio settings template file and operations url shortcut
 if ( $env:deploySQLMI -eq $true -or $env:deployPostgreSQL -eq $true ){
-    Write-Host "Copying Azure Data Studio settings template file"
+    Write-Output "Copying Azure Data Studio settings template file"
     New-Item -Path "C:\Users\$env:adminUsername\AppData\Roaming\azuredatastudio\" -Name "User" -ItemType "directory" -Force
     Copy-Item -Path "C:\Temp\settingsTemplate.json" -Destination "C:\Users\$env:adminUsername\AppData\Roaming\azuredatastudio\User\settings.json"
 
@@ -264,8 +249,8 @@ if ( $env:deploySQLMI -eq $true -or $env:deployPostgreSQL -eq $true ){
 }
 
 # Deleting AWS Desktop shortcuts
-Write-Host "Deleting AWS Desktop shortcuts"
-Write-Host "`n"
+Write-Output "Deleting AWS Desktop shortcuts"
+Write-Output "`n"
 Remove-Item -Path "C:\Users\$env:adminUsername\Desktop\EC2 Microsoft Windows Guide.website" -Force
 Remove-Item -Path "C:\Users\$env:adminUsername\Desktop\EC2 Feedback.website" -Force
 

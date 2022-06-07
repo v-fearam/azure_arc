@@ -16,6 +16,7 @@ $env:azureLocation="${azureLocation}"
 $env:deploySQLMI="${deploySQLMI}"
 $env:deployPostgreSQL="${deployPostgreSQL}"
 $env:templateBaseUrl="${templateBaseUrl}"
+$env:profileRootBaseUrl="${profileRootBaseUrl}"
 
 [System.Environment]::SetEnvironmentVariable('AWS_ACCESS_KEY_ID', $env:AWS_ACCESS_KEY_ID,[System.EnvironmentVariableTarget]::Machine)
 [System.Environment]::SetEnvironmentVariable('AWS_SECRET_ACCESS_KEY', $env:AWS_SECRET_ACCESS_KEY,[System.EnvironmentVariableTarget]::Machine)
@@ -34,6 +35,7 @@ $env:templateBaseUrl="${templateBaseUrl}"
 [System.Environment]::SetEnvironmentVariable('deploySQLMI', $env:deploySQLMI,[System.EnvironmentVariableTarget]::Machine)
 [System.Environment]::SetEnvironmentVariable('deployPostgreSQL', $env:deployPostgreSQL,[System.EnvironmentVariableTarget]::Machine)
 [System.Environment]::SetEnvironmentVariable('templateBaseUrl', $env:templateBaseUrl,[System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable('profileRootBaseUrl', $env:profileRootBaseUrl,[System.EnvironmentVariableTarget]::Machine)
 
 # This EC2 Instance uses the out-of-the-box Administrator account
 # Therefore, we set $env:USERNAME (i.e. Administrator) to $env:adminUsername, as this variable is used going forward in downstream scripts
