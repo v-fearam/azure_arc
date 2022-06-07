@@ -141,6 +141,36 @@ resource "aws_instance" "windows" {
   }
 
   provisioner "file" {
+    source      = "../../common/script/powershell/CommonBoostrapArcData.ps1"
+    destination = "C:/Temp/CommonBoostrapArcData.ps1"
+
+   connection {
+      host     = self.public_ip
+      https    = false
+      insecure = true
+      timeout  = "5m"
+      type     = "winrm"
+      user     = "Administrator"
+      password = rsadecrypt(self.password_data, file(var.key_pair_filename))
+    }
+  }
+
+  provisioner "file" {
+    source      = "../../../common/script/powershell/AddPSProfile-v1.ps1"
+    destination = "C:/Temp/AddPSProfile-v1.ps1"
+
+    connection {
+      host     = self.public_ip
+      https    = false
+      insecure = true
+      timeout  = "5m"
+      type     = "winrm"
+      user     = "Administrator"
+      password = rsadecrypt(self.password_data, file(var.key_pair_filename))
+    }
+  }
+
+  provisioner "file" {
     source      = "artifacts/DataServicesLogonScript.ps1"
     destination = "C:/Temp/DataServicesLogonScript.ps1"
 
@@ -210,6 +240,7 @@ resource "local_file" "azure_arc" {
     deploySQLMI            = var.deploy_SQLMI
     deployPostgreSQL       = var.deploy_PostgreSQL
     templateBaseUrl        = var.templateBaseUrl
+    profileRootBaseUrl     = var.profileRootBaseUrl
     }
   )
   filename = "artifacts/azure_arc.ps1"
