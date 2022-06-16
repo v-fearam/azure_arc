@@ -252,7 +252,7 @@
             "value": "[variables('templateBaseUrl')]"
           },
           "profileRootBaseUrl": {
-            "value": "[variables('templateBaseUrl')]"
+            "value": "[variables('profileRootBaseUrl')]"
           },
           "bastionSubnetPrefix": {
             "value": "[variables('bastionSubnetPrefix')]"
