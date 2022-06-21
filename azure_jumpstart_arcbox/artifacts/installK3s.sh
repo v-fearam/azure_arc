@@ -19,6 +19,7 @@ echo $location:$6 | awk '{print substr($1,2); }' >> vars.sh
 echo $stagingStorageAccountName:$7 | awk '{print substr($1,2); }' >> vars.sh
 echo $logAnalyticsWorkspace:$8 | awk '{print substr($1,2); }' >> vars.sh
 echo $deployBastion:$9 | awk '{print substr($1,2); }' >> vars.sh
+echo $templateBaseUrl:${10} | awk '{print substr($1,2); }' >> vars.sh
 
 sed -i '2s/^/export adminUsername=/' vars.sh
 sed -i '3s/^/export SPN_CLIENT_ID=/' vars.sh
@@ -29,12 +30,20 @@ sed -i '7s/^/export location=/' vars.sh
 sed -i '8s/^/export stagingStorageAccountName=/' vars.sh
 sed -i '9s/^/export logAnalyticsWorkspace=/' vars.sh
 sed -i '10s/^/export deployBastion=/' vars.sh
+sed -i '11s/^/export templateBaseUrl=/' vars.sh
 
 chmod +x vars.sh
 . ./vars.sh
 
 # Creating login message of the day (motd)
 sudo curl -o /etc/profile.d/welcomeCAPI.sh ${templateBaseUrl}artifacts/welcomeK3s.sh
+
+# Download dependencies
+source ./DownloadDependencies-v1.sh
+globalDependencyArray=("InstallAzureCLIAndArcExtensions-v1")
+DownloadDependencies "${templateBaseUrl}../" "${globalDependencyArray[@]}"
+localDependencyArray=()
+DownloadDependencies "${templateBaseUrl}" "${localDependencyArray[@]}"
 
 # Syncing this script log to 'jumpstart_logs' directory for ease of troubleshooting
 sudo -u $adminUsername mkdir -p /home/${adminUsername}/jumpstart_logs
@@ -55,12 +64,7 @@ chown -R staginguser /home/${adminUsername}/.kube/config.staging
 # Installing Helm 3
 sudo snap install helm --classic
 
-# Installing Azure CLI & Azure Arc extensions
-curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-
-sudo -u $adminUsername az extension add --name connectedk8s
-sudo -u $adminUsername az extension add --name k8s-configuration
-sudo -u $adminUsername az extension add --name k8s-extension
+InstallAzureCLIAndArcExtensions $adminUsername
 
 sudo -u $adminUsername az login --service-principal --username $SPN_CLIENT_ID --password $SPN_CLIENT_SECRET --tenant $SPN_TENANT_ID
 
