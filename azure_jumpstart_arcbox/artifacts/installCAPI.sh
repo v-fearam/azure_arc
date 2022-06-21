@@ -39,16 +39,18 @@ chmod +x vars.sh
 # Creating login message of the day (motd)
 sudo curl -o /etc/profile.d/welcomeCAPI.sh ${templateBaseUrl}artifacts/welcomeCAPI.sh
 
+# Download dependencies
+source ./DownloadDependencies-v1.sh
+globalDependencyArray=("InstallAzureCLIAndArcExtensions-v1" "InstallingRancherK3sSingleNode-v1")
+DownloadDependencies "${templateBaseUrl}../" "${globalDependencyArray[@]}"
+localDependencyArray=()
+DownloadDependencies "${templateBaseUrl}" "${localDependencyArray[@]}"
+
 # Syncing this script log to 'jumpstart_logs' directory for ease of troubleshooting
 sudo -u $adminUsername mkdir -p /home/${adminUsername}/jumpstart_logs
 while sleep 1; do sudo -s rsync -a /var/lib/waagent/custom-script/download/0/installCAPI.log /home/${adminUsername}/jumpstart_logs/installCAPI.log; done &
 
-# Installing Azure CLI & Azure Arc extensions
-curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-
-sudo -u $adminUsername az extension add --name connectedk8s
-sudo -u $adminUsername az extension add --name k8s-configuration
-sudo -u $adminUsername az extension add --name k8s-extension
+InstallAzureCLIAndArcExtensions $adminUsername
 
 echo "Log in to Azure"
 sudo -u $adminUsername az login --service-principal --username $SPN_CLIENT_ID --password $SPN_CLIENT_SECRET --tenant $SPN_TENANT_ID
@@ -103,22 +105,7 @@ export AZURE_CLUSTER_IDENTITY_SECRET_NAME="cluster-identity-secret"
 export CLUSTER_IDENTITY_NAME="cluster-identity"
 export AZURE_CLUSTER_IDENTITY_SECRET_NAMESPACE="default"
 
-# Installing Rancher K3s single node cluster using k3sup
-echo ""
-sudo mkdir ~/.kube
-sudo -u $adminUsername mkdir /home/${adminUsername}/.kube
-curl -sLS https://get.k3sup.dev | sh
-sudo k3sup install --local --context arcboxcapimgmt --k3s-extra-args '--no-deploy traefik'
-sudo chmod 644 /etc/rancher/k3s/k3s.yaml
-sudo cp kubeconfig ~/.kube/config
-sudo cp kubeconfig /home/${adminUsername}/.kube/config
-sudo cp /var/lib/waagent/custom-script/download/0/kubeconfig /home/${adminUsername}/.kube/config-mgmt
-sudo cp kubeconfig /home/${adminUsername}/.kube/config.staging
-sudo chown -R $adminUsername /home/${adminUsername}/.kube/
-sudo chown -R staginguser /home/${adminUsername}/.kube/config.staging
-
-export KUBECONFIG=/var/lib/waagent/custom-script/download/0/kubeconfig
-kubectl config set-context arcboxcapimgmt
+InstallingRancherK3sSingleNode $adminUsername
 
 # Installing clusterctl
 echo ""

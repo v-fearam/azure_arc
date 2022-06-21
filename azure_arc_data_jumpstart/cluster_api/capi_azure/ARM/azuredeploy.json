@@ -187,11 +187,11 @@
           "templateBaseUrl": {
             "value": "[variables('templateBaseUrl')]"
           },
+          "profileRootBaseUrl": {
+            "value": "[variables('profileRootBaseUrl')]"
+          },
           "bastionSubnetPrefix": {
             "value": "[variables('bastionSubnetPrefix')]"
-          },
-          "bastionHostName": {
-            "value": "[parameters('bastionHostName')]"
           },
           "deployBastion": {
             "value": "[parameters('deployBastion')]"
