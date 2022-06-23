@@ -4,7 +4,8 @@
 .SYNOPSIS
   Download dependencies
 .EXAMPLE
-  InstallAzureCLIAndArcExtensions
+  globalDependencyArray=("InstallAzureCLIAndArcExtensions-v1" "InstallingRancherK3sSingleNode-v1")
+  DownloadDependencies "${profileRootBaseUrl}" "${globalDependencyArray[@]}"
 "
 
 DownloadDependencies() {
