@@ -9,17 +9,17 @@ sudo adduser staginguser --gecos "First Last,RoomNumber,WorkPhone,HomePhone" --d
 sudo echo "staginguser:ArcPassw0rd" | sudo chpasswd
 
 # Injecting environment variables
-echo '#!/bin/bash' >> vars.sh
-echo $adminUsername:$1 | awk '{print substr($1,2); }' >> vars.sh
-echo $SPN_CLIENT_ID:$2 | awk '{print substr($1,2); }' >> vars.sh
-echo $SPN_CLIENT_SECRET:$3 | awk '{print substr($1,2); }' >> vars.sh
-echo $SPN_TENANT_ID:$4 | awk '{print substr($1,2); }' >> vars.sh
-echo $vmName:$5 | awk '{print substr($1,2); }' >> vars.sh
-echo $location:$6 | awk '{print substr($1,2); }' >> vars.sh
-echo $stagingStorageAccountName:$7 | awk '{print substr($1,2); }' >> vars.sh
-echo $logAnalyticsWorkspace:$8 | awk '{print substr($1,2); }' >> vars.sh
-echo $deployBastion:$9 | awk '{print substr($1,2); }' >> vars.sh
-echo $templateBaseUrl:${10} | awk '{print substr($1,2); }' >> vars.sh
+echo '#!/bin/bash' >>vars.sh
+echo $adminUsername:$1 | awk '{print substr($1,2); }' >>vars.sh
+echo $SPN_CLIENT_ID:$2 | awk '{print substr($1,2); }' >>vars.sh
+echo $SPN_CLIENT_SECRET:$3 | awk '{print substr($1,2); }' >>vars.sh
+echo $SPN_TENANT_ID:$4 | awk '{print substr($1,2); }' >>vars.sh
+echo $vmName:$5 | awk '{print substr($1,2); }' >>vars.sh
+echo $location:$6 | awk '{print substr($1,2); }' >>vars.sh
+echo $stagingStorageAccountName:$7 | awk '{print substr($1,2); }' >>vars.sh
+echo $logAnalyticsWorkspace:$8 | awk '{print substr($1,2); }' >>vars.sh
+echo $deployBastion:$9 | awk '{print substr($1,2); }' >>vars.sh
+echo $templateBaseUrl:${10} | awk '{print substr($1,2); }' >>vars.sh
 
 sed -i '2s/^/export adminUsername=/' vars.sh
 sed -i '3s/^/export SPN_CLIENT_ID=/' vars.sh
@@ -42,7 +42,7 @@ sudo curl -o /etc/profile.d/welcomeCAPI.sh ${templateBaseUrl}artifacts/welcomeK3
 source ./DownloadDependencies-v1.sh
 globalDependencyArray=("InstallAzureCLIAndArcExtensions-v1")
 DownloadDependencies "${templateBaseUrl}../" "${globalDependencyArray[@]}"
-localDependencyArray=()
+localDependencyArray=("UploadLogToStorageAccount-v1")
 DownloadDependencies "${templateBaseUrl}" "${localDependencyArray[@]}"
 
 # Syncing this script log to 'jumpstart_logs' directory for ease of troubleshooting
@@ -90,15 +90,5 @@ sudo -u $adminUsername az k8s-extension create -n "azure-defender" --cluster-nam
 sudo -u $adminUsername az provider register --namespace 'Microsoft.PolicyInsights' --wait
 sudo -u $adminUsername az k8s-extension create --cluster-type connectedClusters --cluster-name $vmName --resource-group $resourceGroup --extension-type Microsoft.PolicyInsights --name arc-azurepolicy --only-show-errors
 
-# Copying Rancher K3s kubeconfig file to staging storage account
-sudo -u $adminUsername az extension add --upgrade -n storage-preview
-storageAccountRG=$(sudo -u $adminUsername az storage account show --name $stagingStorageAccountName --query 'resourceGroup' | sed -e 's/^"//' -e 's/"$//')
-storageContainerName="staging-k3s"
-localPath="/home/$adminUsername/.kube/config"
-storageAccountKey=$(sudo -u $adminUsername az storage account keys list --resource-group $storageAccountRG --account-name $stagingStorageAccountName --query [0].value | sed -e 's/^"//' -e 's/"$//')
-sudo -u $adminUsername az storage container create -n $storageContainerName --account-name $stagingStorageAccountName --account-key $storageAccountKey
-sudo -u $adminUsername az storage azcopy blob upload --container $storageContainerName --account-name $stagingStorageAccountName --account-key $storageAccountKey --source $localPath
-
-# Uploading this script log to staging storage for ease of troubleshooting
-log="/home/${adminUsername}/jumpstart_logs/installK3s.log"
-sudo -u $adminUsername az storage azcopy blob upload --container $storageContainerName --account-name $stagingStorageAccountName --account-key $storageAccountKey --source $log
+# Copying Rancher K3s kubeconfig file to staging storage account & Uploading this script log to staging storage for ease of troubleshooting
+UploadLogToStorageAccount "$adminUsername" "$stagingStorageAccountName" "K3s"
