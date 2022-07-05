@@ -88,8 +88,8 @@ resource "google_compute_instance" "default" {
   }
 
   provisioner "file" {
-    source      = "../../common/script/powershell/CommonBoostrapArcData.ps1"
-    destination = "C:/Temp/CommonBoostrapArcData.ps1"
+    source      = "../../common/script/powershell/CommonBootstrapArcData.ps1"
+    destination = "C:/Temp/CommonBootstrapArcData.ps1"
 
     connection {
       host     = google_compute_instance.default.network_interface.0.access_config.0.nat_ip

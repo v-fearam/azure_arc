@@ -9,6 +9,7 @@ param (
 Write-Output "Common Arc Data Boostrap"
 
 Add-PowerShell-Profile  ($profileRootBaseUrl + "common\script\powershell\PSArcDataProfile.ps1") $profileRootBaseUrl @("DownloadFiles-v1", "InstallChocoApps-v1", "AddLogonScripts-v1", "AddDesktopShortcut-v1")
+
 . $PsHome/DownloadFiles-v1.ps1
 . $PsHome/InstallChocoApps-v1.ps1
 . $PsHome/AddLogonScripts-v1.ps1

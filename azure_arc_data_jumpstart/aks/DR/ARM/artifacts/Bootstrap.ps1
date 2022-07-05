@@ -39,7 +39,7 @@ param (
 
 Start-Transcript "C:\Temp\Bootstrap.log"
 . ./AddPSProfile-v1.ps1
-. ./CommonBoostrapArcData.ps1 $profileRootBaseUrl $templateBaseUrl $adminUsername @() false
+. ./CommonBootstrapArcData.ps1 $profileRootBaseUrl $templateBaseUrl $adminUsername @() false
 
 # Clean up Bootstrap.log
 Stop-Transcript

@@ -1,7 +1,7 @@
 Start-Transcript "C:\Temp\Bootstrap.log"
 
 . ./AddPSProfile-v1.ps1
-. ./CommonBoostrapArcData.ps1 $env:profileRootBaseUrl $env:templateBaseUrl $env:adminUsername
+. ./CommonBootstrapArcData.ps1 $env:profileRootBaseUrl $env:templateBaseUrl $env:adminUsername
 
 # Clean up Bootstrap.log
 Stop-Transcript

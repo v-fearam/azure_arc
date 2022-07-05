@@ -141,8 +141,8 @@ resource "aws_instance" "windows" {
   }
 
   provisioner "file" {
-    source      = "../../common/script/powershell/CommonBoostrapArcData.ps1"
-    destination = "C:/Temp/CommonBoostrapArcData.ps1"
+    source      = "../../common/script/powershell/CommonBootstrapArcData.ps1"
+    destination = "C:/Temp/CommonBootstrapArcData.ps1"
 
    connection {
       host     = self.public_ip
