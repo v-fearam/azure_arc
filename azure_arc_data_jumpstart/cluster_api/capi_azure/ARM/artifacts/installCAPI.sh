@@ -41,7 +41,7 @@ sudo curl -o /etc/profile.d/welcomeCAPI.sh ${templateBaseUrl}artifacts/welcomeCA
 
 # Download dependencies
 source ./DownloadDependencies-v1.sh
-globalDependencyArray=("InstallAzureCLIAndArcExtensions-v1" "InstallingRancherK3sSingleNode-v1")
+globalDependencyArray=("InstallAzureCLIAndArcExtensions-v1" "InstallingRancherK3sSingleNode-v1" "UploadLogToStorageAccount-v1")
 DownloadDependencies "${profileRootBaseUrl}../" "${globalDependencyArray[@]}"
 localDependencyArray=()
 DownloadDependencies "${profileRootBaseUrl}" "${localDependencyArray[@]}"
@@ -217,17 +217,5 @@ sudo -u $adminUsername az k8s-extension create --name "azuremonitor-containers" 
 echo ""
 #sudo -u $adminUsername az k8s-extension create -n "azure-defender" --cluster-name $arcK8sClusterName --resource-group $AZURE_RESOURCE_GROUP --cluster-type connectedClusters --extension-type Microsoft.AzureDefender.Kubernetes --configuration-settings logAnalyticsWorkspaceResourceID=$workspaceResourceId --debug
 
-# Copying workload CAPI kubeconfig file to staging storage account
-echo ""
-sudo -u $adminUsername az extension add --upgrade -n storage-preview
-storageAccountRG=$(sudo -u $adminUsername az storage account show --name $stagingStorageAccountName --query 'resourceGroup' | sed -e 's/^"//' -e 's/"$//')
-storageContainerName="staging-capi"
-export localPath="/home/${adminUsername}/.kube/config"
-storageAccountKey=$(sudo -u $adminUsername az storage account keys list --resource-group $storageAccountRG --account-name $stagingStorageAccountName --query [0].value | sed -e 's/^"//' -e 's/"$//')
-sudo -u $adminUsername az storage container create -n $storageContainerName --account-name $stagingStorageAccountName --account-key $storageAccountKey
-sudo -u $adminUsername az storage azcopy blob upload --container $storageContainerName --account-name $stagingStorageAccountName --account-key $storageAccountKey --source $localPath
-
-# Uploading this script log to staging storage for ease of troubleshooting
-echo ""
-log="/home/${adminUsername}/jumpstart_logs/installCAPI.log"
-sudo -u $adminUsername az storage azcopy blob upload --container $storageContainerName --account-name $stagingStorageAccountName --account-key $storageAccountKey --source $log
+# Copying workload CAPI kubeconfig file to staging storage account & Uploading this script log to staging storage for ease of troubleshooting
+UploadLogToStorageAccount "$adminUsername" "$stagingStorageAccountName" "CAPI"

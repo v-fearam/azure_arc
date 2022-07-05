@@ -40,9 +40,9 @@ sudo curl -o /etc/profile.d/welcomeCAPI.sh ${templateBaseUrl}artifacts/welcomeK3
 
 # Download dependencies
 source ./DownloadDependencies-v1.sh
-globalDependencyArray=("InstallAzureCLIAndArcExtensions-v1")
+globalDependencyArray=("InstallAzureCLIAndArcExtensions-v1" "UploadLogToStorageAccount-v1")
 DownloadDependencies "${templateBaseUrl}../" "${globalDependencyArray[@]}"
-localDependencyArray=("UploadLogToStorageAccount-v1")
+localDependencyArray=()
 DownloadDependencies "${templateBaseUrl}" "${localDependencyArray[@]}"
 
 # Syncing this script log to 'jumpstart_logs' directory for ease of troubleshooting
