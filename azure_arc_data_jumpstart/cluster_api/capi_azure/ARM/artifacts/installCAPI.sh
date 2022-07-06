@@ -39,12 +39,10 @@ chmod +x vars.sh
 # Creating login message of the day (motd)
 sudo curl -o /etc/profile.d/welcomeCAPI.sh ${templateBaseUrl}artifacts/welcomeCAPI.sh
 
-# Download dependencies
+# Download global dependencies, local dependencies would be the same but changing the root folder to "${profileRootBaseUrl}"
 source ./DownloadDependencies-v1.sh
 globalDependencyArray=("InstallAzureCLIAndArcExtensions-v1" "InstallingRancherK3sSingleNode-v1" "UploadLogToStorageAccount-v1")
 DownloadDependencies "${profileRootBaseUrl}../" "${globalDependencyArray[@]}"
-localDependencyArray=()
-DownloadDependencies "${profileRootBaseUrl}" "${localDependencyArray[@]}"
 
 # Syncing this script log to 'jumpstart_logs' directory for ease of troubleshooting
 sudo -u $adminUsername mkdir -p /home/${adminUsername}/jumpstart_logs
