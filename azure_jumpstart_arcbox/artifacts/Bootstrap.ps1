@@ -92,7 +92,7 @@ Add-PowerShell-Profile  ($templateBaseUrl + "artifacts\PSProfile.ps1") $template
 . $PsHome/DownloadFiles-v1.ps1
 . $PsHome/InstallChocoApps-v1.ps1
 . $PsHome/AddLogonScripts-v1.ps1
-Download-File ($templateBaseUrl + "common/script/powershell")  @("ProfileITPro-v1.ps1","ProfileFullItPro-v1.ps1","ProfileFull-v1.ps1","ProfileDevOps-v1.ps1") $Env:ArcBoxDir
+Get-File ($templateBaseUrl + "common/script/powershell")  @("ProfileITPro-v1.ps1","ProfileFullItPro-v1.ps1","ProfileFull-v1.ps1","ProfileDevOps-v1.ps1") $Env:ArcBoxDir
 
 # Extending C:\ partition to the maximum size
 Write-Output "Extending C:\ partition to the maximum size"
@@ -114,10 +114,10 @@ Write-Header "Fetching GitHub Artifacts"
 
 # All flavors
 Write-Output "Fetching Artifacts for All Flavors"
-Download-File-Renaming ($templateBaseUrl + "../img/arcbox_wallpaper.png") $Env:ArcBoxDir\wallpaper.png
-Download-File ($templateBaseUrl + "artifacts")  @("MonitorWorkbookLogonScript.ps1", "mgmtMonitorWorkbook.parameters.json", "DeploymentStatus.ps1") $Env:ArcBoxDir
-Download-File ($templateBaseUrl + "artifacts")  @("LogInstructions.txt") $Env:ArcBoxLogsDir
-Download-File ($templateBaseUrl + "../tests")  @("GHActionDeploy.ps1", "OpenSSHDeploy.ps1") $Env:ArcBoxDir
+Get-File-Renaming ($templateBaseUrl + "../img/arcbox_wallpaper.png") $Env:ArcBoxDir\wallpaper.png
+Get-File ($templateBaseUrl + "artifacts")  @("MonitorWorkbookLogonScript.ps1", "mgmtMonitorWorkbook.parameters.json", "DeploymentStatus.ps1") $Env:ArcBoxDir
+Get-File ($templateBaseUrl + "artifacts")  @("LogInstructions.txt") $Env:ArcBoxLogsDir
+Get-File ($templateBaseUrl + "../tests")  @("GHActionDeploy.ps1", "OpenSSHDeploy.ps1") $Env:ArcBoxDir
 
 New-Item -path alias:kubectl -value 'C:\ProgramData\chocolatey\lib\kubernetes-cli\tools\kubernetes\client\bin\kubectl.exe'
 New-Item -path alias:azdata -value 'C:\Program Files (x86)\Microsoft SDKs\Azdata\CLI\wbin\azdata.cmd'

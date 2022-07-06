@@ -3,9 +3,9 @@
 .SYNOPSIS
   Download a set of files from a web location to your to the computer
 .EXAMPLE
-  Download-File ($templateBaseUrl + "../tests/")  @("GHActionDeploy.ps1", "OpenSSHDeploy.ps1") $Env:ArcBoxDir
+  Get-File ($templateBaseUrl + "../tests/")  @("GHActionDeploy.ps1", "OpenSSHDeploy.ps1") $Env:ArcBoxDir
 #>
-function Download-File {
+function Get-File {
   param(
     [string] $origin ,
     [string[]] $filenames ,
@@ -21,9 +21,9 @@ function Download-File {
 .SYNOPSIS
   Download a file and save it with another name
 .EXAMPLE
-  Download-File-Renaming ($templateBaseUrl + "../img/arcbox_wallpaper.png") $Env:ArcBoxDir\wallpaper.png
+  Get-File-Renaming ($templateBaseUrl + "../img/arcbox_wallpaper.png") $Env:ArcBoxDir\wallpaper.png
 #>
-function Download-File-Renaming {
+function Get-File-Renaming {
   param(
     [string] $originFile ,
     [string] $targetFile

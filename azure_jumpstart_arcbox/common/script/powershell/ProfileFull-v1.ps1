@@ -1,13 +1,13 @@
 Write-Output "Full profile script"
 
 Write-Output "Fetching Workbook Template Artifact for Full"
-Download-File-Renaming ($templateBaseUrl + "artifacts/mgmtMonitorWorkbookFull.json") $Env:ArcBoxDir\mgmtMonitorWorkbook.json
+Get-File-Renaming ($templateBaseUrl + "artifacts/mgmtMonitorWorkbookFull.json") $Env:ArcBoxDir\mgmtMonitorWorkbook.json
 
 Write-Output "Fetching Artifacts for Full Flavor"
-Download-File-Renaming ("https://azuredatastudio-update.azurewebsites.net/latest/win32-x64-archive/stable") $Env:ArcBoxDir\azuredatastudio.zip
-Download-File-Renaming ("https://aka.ms/azdata-msi") $Env:ArcBoxDir\AZDataCLI.msi
-Download-File ($templateBaseUrl + "artifacts")  @("settingsTemplate.json", "DataServicesLogonScript.ps1", "DeployPostgreSQL.ps1", "DeploySQLMI.ps1", "dataController.json", "dataController.parameters.json", "postgreSQL.json", "postgreSQL.parameters.json", "sqlmi.json", "sqlmi.parameters.json", "SQLMIEndpoints.ps1") $Env:ArcBoxDir
-Download-File-Renaming ("https://github.com/ErikEJ/SqlQueryStress/releases/download/102/SqlQueryStress.zip") $Env:ArcBoxDir\SqlQueryStress.zip
+Get-File-Renaming ("https://azuredatastudio-update.azurewebsites.net/latest/win32-x64-archive/stable") $Env:ArcBoxDir\azuredatastudio.zip
+Get-File-Renaming ("https://aka.ms/azdata-msi") $Env:ArcBoxDir\AZDataCLI.msi
+Get-File ($templateBaseUrl + "artifacts")  @("settingsTemplate.json", "DataServicesLogonScript.ps1", "DeployPostgreSQL.ps1", "DeploySQLMI.ps1", "dataController.json", "dataController.parameters.json", "postgreSQL.json", "postgreSQL.parameters.json", "sqlmi.json", "sqlmi.parameters.json", "SQLMIEndpoints.ps1") $Env:ArcBoxDir
+Get-File-Renaming ("https://github.com/ErikEJ/SqlQueryStress/releases/download/102/SqlQueryStress.zip") $Env:ArcBoxDir\SqlQueryStress.zip
 
 Write-Output "Installing Azure Data Studio"
 Expand-Archive $Env:ArcBoxDir\azuredatastudio.zip -DestinationPath 'C:\Program Files\Azure Data Studio'

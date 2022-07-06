@@ -40,18 +40,18 @@ Write-Output "Installing Chocolatey Apps"
 $chocolateyAppList = $extraChocolateyAppList + @("azure-cli", "az.powershell", "kubernetes-cli", "kubectx", "vcredist140", "microsoft-edge", "azcopy10", "vscode", "putty.install", "kubernetes-helm", "grep", "ssms", "dotnetcore-3.1-sdk")
 Install-ChocolateyApp $chocolateyAppList
 
-Download-File-Renaming "https://azuredatastudio-update.azurewebsites.net/latest/win32-x64-archive/stable" "$Env:tempDir\azuredatastudio.zip"
-Download-File-Renaming "https://aka.ms/azdata-msi" "$Env:tempDir\AZDataCLI.msi"
+Get-File-Renaming "https://azuredatastudio-update.azurewebsites.net/latest/win32-x64-archive/stable" "$Env:tempDir\azuredatastudio.zip"
+Get-File-Renaming "https://aka.ms/azdata-msi" "$Env:tempDir\AZDataCLI.msi"
 
 # Downloading GitHub artifacts for DataServicesLogonScript.ps1
-Download-File ($templateBaseUrl + "artifacts") @("settingsTemplate.json", "DataServicesLogonScript.ps1", "DeploySQLMI.ps1", "dataController.json", "dataController.parameters.json", "SQLMI.json", "SQLMI.parameters.json", "SQLMIEndpoints.ps1") ($Env:tempDir)
+Get-File ($templateBaseUrl + "artifacts") @("settingsTemplate.json", "DataServicesLogonScript.ps1", "DeploySQLMI.ps1", "dataController.json", "dataController.parameters.json", "SQLMI.json", "SQLMI.parameters.json", "SQLMIEndpoints.ps1") ($Env:tempDir)
 if ($postgre -eq "true") {
-    Download-File ($templateBaseUrl + "artifacts") @("postgreSQL.json", "postgreSQL.parameters.json", "DeployPostgreSQL.ps1") ($Env:tempDir)
+    Get-File ($templateBaseUrl + "artifacts") @("postgreSQL.json", "postgreSQL.parameters.json", "DeployPostgreSQL.ps1") ($Env:tempDir)
 }
-Download-File ($profileRootBaseUrl + "common/script/powershell") @("CommonDataServicesLogonScript.ps1") ($Env:tempDir)
+Get-File ($profileRootBaseUrl + "common/script/powershell") @("CommonDataServicesLogonScript.ps1") ($Env:tempDir)
 
-Download-File-Renaming ("https://github.com/ErikEJ/SqlQueryStress/releases/download/102/SqlQueryStress.zip") "$Env:tempDir\SqlQueryStress.zip"
-Download-File-Renaming ($profileRootBaseUrl + "../img/arcbox_wallpaper.png") $Env:tempDir\wallpaper.png
+Get-File-Renaming ("https://github.com/ErikEJ/SqlQueryStress/releases/download/102/SqlQueryStress.zip") "$Env:tempDir\SqlQueryStress.zip"
+Get-File-Renaming ($profileRootBaseUrl + "../img/arcbox_wallpaper.png") $Env:tempDir\wallpaper.png
 
 Expand-Archive $Env:tempDir\azuredatastudio.zip -DestinationPath 'C:\Program Files\Azure Data Studio'
 Start-Process msiexec.exe -Wait -ArgumentList '/I C:\Temp\AZDataCLI.msi /quiet'
