@@ -4,7 +4,7 @@ Start-Transcript -Path C:\Temp\DataServicesLogonScript.log
 $Env:TempDir = "C:\Temp"
 $connectedClusterName = $Env:ArcK8sClusterName
 
-. $Env:tempDir/CommonDataServicesLogonScript.ps1 -extraAzExtensions @("connectedk8s", "k8s-extension")
+. $Env:tempDir/CommonDataServicesLogonScript.ps1
 
 # Required for azcopy
 $azurePassword = ConvertTo-SecureString $Env:spnClientSecret -AsPlainText -Force

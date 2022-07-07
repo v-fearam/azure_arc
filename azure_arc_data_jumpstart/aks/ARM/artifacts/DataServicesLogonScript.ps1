@@ -3,7 +3,7 @@ Start-Transcript -Path C:\Temp\DataServicesLogonScript.log
 # Deployment environment variables
 $connectedClusterName = "Arc-DataSvc-AKS"
 
-. $Env:tempDir/CommonDataServicesLogonScript.ps1 -extraAzExtensions @("connectedk8s", "k8s-extension")
+. $Env:tempDir/CommonDataServicesLogonScript.ps1
 
 # Set default subscription to run commands against
 # "subscriptionId" value comes from clientVM.json ARM template, based on which 
