@@ -1,21 +1,29 @@
-. C:\ArcBox\common\script\powershell\arcboxPaths-v1.ps1
+$Env:ArcBoxDir = "C:\ArcBox"
+$Env:ArcBoxLogsDir = "C:\ArcBox\Logs"
 $connectedClusterName=$Env:capiArcDataClusterName
 
 Start-Transcript -Path $Env:ArcBoxLogsDir\DataServicesLogonScript.log
-. $Env:PowerShellCommonScripts\azureConfigDir-v1.ps1
-. $Env:PowerShellCommonScripts\loginAzureTools-v1.ps1
-. $Env:PowerShellCommonScripts\downloadCapiFiles-v1.ps1
-. $Env:PowerShellCommonScripts\downloadRancherK3sFiles-v1.ps1
-. $Env:PowerShellCommonScripts\mergingCAPI-K3sKubeconfigs-v1.ps1
-. $Env:PowerShellCommonScripts\setWallpaper-v1.ps1
-. $Env:PowerShellCommonScripts\creatingDesktopShortcut-v1.ps1
 
+$cliDir = New-Item -Path "$Env:ArcBoxDir\.cli\" -Name ".data" -ItemType Directory
 
-Azure-Config-Directory $Env:ArcBoxDir  ".data" 
+if(-not $($cliDir.Parent.Attributes.HasFlag([System.IO.FileAttributes]::Hidden))) {
+    $folder = Get-Item $cliDir.Parent.FullName -ErrorAction SilentlyContinue
+    $folder.Attributes += [System.IO.FileAttributes]::Hidden
+}
+
+$Env:AZURE_CONFIG_DIR = $cliDir.FullName
 
 Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
 
-Arbox-Login-Azure-Tools
+# Required for azcopy
+Write-Header "Az PowerShell Login"
+$azurePassword = ConvertTo-SecureString $Env:spnClientSecret -AsPlainText -Force
+$psCred = New-Object System.Management.Automation.PSCredential($Env:spnClientID , $azurePassword)
+Connect-AzAccount -Credential $psCred -TenantId $Env:spnTenantId -ServicePrincipal
+
+# Required for CLI commands
+Write-Header "Az CLI Login"
+az login --service-principal --username $Env:spnClientID --password $Env:spnClientSecret --tenant $Env:spnTenantId
 
 # Making extension install dynamic
 Write-Header "Installing Azure CLI extensions"
@@ -37,17 +45,43 @@ $Env:argument4="Microsoft.arc"
 
 # Create Azure Data Studio desktop shortcut
 Write-Header "Creating Azure Data Studio Desktop Shortcut"
-Creating-Desktop-Shortcut -shortcutName "Azure Data Studio" -username $Env:adminUsername -targetPath "C:\Program Files\Azure Data Studio\azuredatastudio.exe"
+$TargetFile = "C:\Program Files\Azure Data Studio\azuredatastudio.exe"
+$ShortcutFile = "C:\Users\$Env:adminUsername\Desktop\Azure Data Studio.lnk"
+$WScriptShell = New-Object -ComObject WScript.Shell
+$Shortcut = $WScriptShell.CreateShortcut($ShortcutFile)
+$Shortcut.TargetPath = $TargetFile
+$Shortcut.Save()
 
 # Creating Microsoft SQL Server Management Studio (SSMS) desktop shortcut
 Write-Host "`n"
 Write-Host "Creating Microsoft SQL Server Management Studio (SSMS) desktop shortcut"
 Write-Host "`n"
-Creating-Desktop-Shortcut -shortcutName "Microsoft SQL Server Management Studio 18" -username $Env:adminUsername -targetPath "C:\Program Files (x86)\Microsoft SQL Server Management Studio 18\Common7\IDE\ssms.exe"
+$TargetFile = "C:\Program Files (x86)\Microsoft SQL Server Management Studio 18\Common7\IDE\ssms.exe"
+$ShortcutFile = "C:\Users\$Env:adminUsername\Desktop\Microsoft SQL Server Management Studio 18.lnk"
+$WScriptShell = New-Object -ComObject WScript.Shell
+$Shortcut = $WScriptShell.CreateShortcut($ShortcutFile)
+$Shortcut.TargetPath = $TargetFile
+$Shortcut.Save()
 
-Download-CAPI-Files
+# Downloading CAPI Kubernetes cluster kubeconfig file
+Write-Header "Downloading CAPI K8s Kubeconfig"
+$sourceFile = "https://$Env:stagingStorageAccountName.blob.core.windows.net/staging-capi/config"
+$context = (Get-AzStorageAccount -ResourceGroupName $Env:resourceGroup).Context
+$sas = New-AzStorageAccountSASToken -Context $context -Service Blob -ResourceType Object -Permission racwdlup
+$sourceFile = $sourceFile + $sas
+azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "C:\Users\$Env:USERNAME\.kube\config"
 
-Download-RancherK3s-Files
+# Downloading 'installCAPI.log' log file
+Write-Header "Downloading CAPI Install Logs"
+$sourceFile = "https://$Env:stagingStorageAccountName.blob.core.windows.net/staging-capi/installCAPI.log"
+$sourceFile = $sourceFile + $sas
+azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "$Env:ArcBoxLogsDir\installCAPI.log"
+
+# Downloading 'installK3s.log' log file
+Write-Header "Downloading K3s Install Logs"
+$sourceFile = "https://$Env:stagingStorageAccountName.blob.core.windows.net/staging-k3s/installK3s.log"
+$sourceFile = $sourceFile + $sas
+azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "$Env:ArcBoxLogsDir\installK3s.log"
 
 Write-Header "Checking K8s Nodes"
 kubectl get nodes
@@ -133,7 +167,26 @@ Write-Header "Updating Azure Data Studio Settings"
 New-Item -Path "C:\Users\$Env:adminUsername\AppData\Roaming\azuredatastudio\" -Name "User" -ItemType "directory" -Force
 Copy-Item -Path "$Env:ArcBoxDir\settingsTemplate.json" -Destination "C:\Users\$Env:adminUsername\AppData\Roaming\azuredatastudio\User\settings.json"
 
-Merging-CAPI-K3s-Kubeconfigs
+# Downloading Rancher K3s kubeconfig file
+Write-Header "Downloading Rancher K3s Kubeconfig"
+$sourceFile = "https://$Env:stagingStorageAccountName.blob.core.windows.net/staging-k3s/config"
+$context = (Get-AzStorageAccount -ResourceGroupName $Env:resourceGroup).Context
+$sas = New-AzStorageAccountSASToken -Context $context -Service Blob -ResourceType Object -Permission racwdlup
+$sourceFile = $sourceFile + $sas
+azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "C:\Users\$Env:USERNAME\.kube\config-k3s"
+
+# Merging kubeconfig files from CAPI and Rancher K3s
+Write-Header "Merging CAPI & K3s Kubeconfigs"
+Copy-Item -Path "C:\Users\$Env:USERNAME\.kube\config" -Destination "C:\Users\$Env:USERNAME\.kube\config.backup"
+$Env:KUBECONFIG="C:\Users\$Env:USERNAME\.kube\config;C:\Users\$Env:USERNAME\.kube\config-k3s"
+kubectl config view --raw > C:\users\$Env:USERNAME\.kube\config_tmp
+kubectl config get-clusters --kubeconfig=C:\users\$Env:USERNAME\.kube\config_tmp
+Remove-Item -Path "C:\Users\$Env:USERNAME\.kube\config"
+Remove-Item -Path "C:\Users\$Env:USERNAME\.kube\config-k3s"
+Move-Item -Path "C:\Users\$Env:USERNAME\.kube\config_tmp" -Destination "C:\users\$Env:USERNAME\.kube\config"
+$Env:KUBECONFIG="C:\users\$Env:USERNAME\.kube\config"
+kubectx
+Write-Host "`n"
 
 # Creating desktop url shortcuts for built-in Grafana and Kibana services
 Write-Header "Creating Grafana & Kibana Shortcuts"
@@ -154,7 +207,29 @@ $Favorite.Save()
 Stop-Process -Id $kubectlMonShell.Id
 
 # Changing to Jumpstart ArcBox wallpaper
-Set-WallPapper "ArcServersLogonScript.ps1"
+$code = @' 
+using System.Runtime.InteropServices; 
+namespace Win32{ 
+    
+    public class Wallpaper{ 
+        [DllImport("user32.dll", CharSet=CharSet.Auto)] 
+            static extern int SystemParametersInfo (int uAction , int uParam , string lpvParam , int fuWinIni) ; 
+            
+            public static void SetWallpaper(string thePath){ 
+            SystemParametersInfo(20,0,thePath,3); 
+            }
+        }
+    } 
+'@
+
+$ArcServersLogonScript = Get-WmiObject win32_process -filter 'name="powershell.exe"' | Select-Object CommandLine | ForEach-Object { $_ | Select-String "ArcServersLogonScript.ps1" }
+
+if(-not $ArcServersLogonScript) {
+    Write-Header "Changing Wallpaper"
+    $imgPath="$Env:ArcBoxDir\wallpaper.png"
+    Add-Type $code
+    [Win32.Wallpaper]::SetWallpaper($imgPath)
+}
 
 # Removing the LogonScript Scheduled Task so it won't run on next reboot
 Write-Header "Removing Logon Task"
