@@ -111,10 +111,13 @@ if ($enableADAuth -eq $true -and $addsDomainName.Length -gt 0)
 }
 else
 {
+    Write-Output "Downloading GetPostgreFiles"
     Invoke-WebRequest ($profileRootBaseUrl + "common/script/powershell/GetPostgreFiles.ps1") -OutFile "$Env:tempDir\GetPostgreFiles.ps1"
     . $Env:tempDir\GetPostgreFiles.ps1
-    
-    . ./CommonBootstrapArcData.ps1 -profileRootBaseUrl $profileRootBaseUrl -templateBaseUrl $templateBaseUrl -adminUsername $adminUsername -extraDownloads $function:Get-Postgre-Files
+
+    Write-Output "Downloading GetPostgreFiles succeded"
+
+    . ./CommonBootstrapArcData.ps1 -profileRootBaseUrl $profileRootBaseUrl -templateBaseUrl $templateBaseUrl -adminUsername $adminUsername -extraDownloads { Get-Postgre-Files $($args[0]) }
 
     # Clean up Bootstrap.log
     Stop-Transcript
