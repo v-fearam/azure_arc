@@ -1,6 +1,6 @@
 param (
     [string[]] $extraAzExtensions = @(),
-    [string] $installK8extensions = "true"
+    [switch] $notInstallK8extensions
 
 )
 Write-Output "Common DataServicesLogonScript"
@@ -17,11 +17,11 @@ Write-Output "Az cli version"
 az -v
 
 Write-Output "Installing Azure CLI extensions"
-if ($installK8extensions -eq "true") {
-    $k8extensions = @("connectedk8s", "k8s-extension")
+if ($notInstallK8extensions) {
+    $k8extensions = @()
 }
 else {
-    $k8extensions = @()
+    $k8extensions = @("connectedk8s", "k8s-extension")
 }
 $az_extensions = $extraAzExtensions + $k8extensions + @("arcdata")
 foreach ($az_extension in $az_extensions) {

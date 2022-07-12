@@ -64,7 +64,7 @@ Invoke-WebRequest ($templateBaseUrl + "artifacts/RunAfterClientVMADJoin.ps1") -O
 # If AD Auth is required join computer to ADDS domain and restart computer
 if ($enableADAuth -eq $true -and $addsDomainName.Length -gt 0)
 {
-    . ./CommonBootstrapArcData.ps1 -profileRootBaseUrl $profileRootBaseUrl -templateBaseUrl $templateBaseUrl -adminUsername $adminUsername -scriptAtLogOn "false"
+    . ./CommonBootstrapArcData.ps1 -profileRootBaseUrl $profileRootBaseUrl -templateBaseUrl $templateBaseUrl -adminUsername $adminUsername -avoidScriptAtLogOn
 
     # Install Windows Feature RSAT-AD-PowerShell windows feature to setup OU and User Accounts in ADDS
     Install-WindowsFeature -Name RSAT-AD-PowerShell

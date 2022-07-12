@@ -3,8 +3,8 @@ param (
     [string] $templateBaseUrl,
     [string] $adminUsername,
     [string[]]$extraChocolateyAppList = @(),
-    [string] $postgre = "true",
-    [string] $scriptAtLogOn = "true"
+    [switch] $avoidPostgre,
+    [switch] $avoidScriptAtLogOn
 )
 Write-Output "Common Arc Data Boostrap"
 
@@ -45,7 +45,7 @@ Get-File-Renaming "https://aka.ms/azdata-msi" "$Env:tempDir\AZDataCLI.msi"
 
 # Downloading GitHub artifacts for DataServicesLogonScript.ps1
 Get-File ($templateBaseUrl + "artifacts") @("settingsTemplate.json", "DataServicesLogonScript.ps1", "DeploySQLMI.ps1", "dataController.json", "dataController.parameters.json", "SQLMI.json", "SQLMI.parameters.json", "SQLMIEndpoints.ps1") ($Env:tempDir)
-if ($postgre -eq "true") {
+if (-not $avoidPostgre) {
     Get-File ($templateBaseUrl + "artifacts") @("postgreSQL.json", "postgreSQL.parameters.json", "DeployPostgreSQL.ps1") ($Env:tempDir)
 }
 Get-File ($profileRootBaseUrl + "common/script/powershell") @("CommonDataServicesLogonScript.ps1") ($Env:tempDir)
@@ -59,7 +59,7 @@ Start-Process msiexec.exe -Wait -ArgumentList '/I C:\Temp\AZDataCLI.msi /quiet'
 New-Item -path alias:kubectl -value 'C:\ProgramData\chocolatey\lib\kubernetes-cli\tools\kubernetes\client\bin\kubectl.exe'
 New-Item -path alias:azdata -value 'C:\Program Files (x86)\Microsoft SDKs\Azdata\CLI\wbin\azdata.cmd'
 
-if ($scriptAtLogOn -eq "true") {
+if (-not $avoidScriptAtLogOn) {
     # Creating scheduled task for DataServicesLogonScript.ps1
     Add-Logon-Script $adminUsername "DataServicesLogonScript" ("$Env:tempDir\DataServicesLogonScript.ps1")
 
