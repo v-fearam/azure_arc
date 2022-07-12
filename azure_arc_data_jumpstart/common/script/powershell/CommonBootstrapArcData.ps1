@@ -3,7 +3,7 @@ param (
     [string] $templateBaseUrl,
     [string] $adminUsername,
     [string[]]$extraChocolateyAppList = @(),
-    [string] $postgre = "true",
+    [scriptblock] $extraDownloads = $({}),
     [string] $scriptAtLogOn = "true"
 )
 Write-Output "Common Arc Data Boostrap"
@@ -45,9 +45,7 @@ Get-File-Renaming "https://aka.ms/azdata-msi" "$Env:tempDir\AZDataCLI.msi"
 
 # Downloading GitHub artifacts for DataServicesLogonScript.ps1
 Get-File ($templateBaseUrl + "artifacts") @("settingsTemplate.json", "DataServicesLogonScript.ps1", "DeploySQLMI.ps1", "dataController.json", "dataController.parameters.json", "SQLMI.json", "SQLMI.parameters.json", "SQLMIEndpoints.ps1") ($Env:tempDir)
-if ($postgre -eq "true") {
-    Get-File ($templateBaseUrl + "artifacts") @("postgreSQL.json", "postgreSQL.parameters.json", "DeployPostgreSQL.ps1") ($Env:tempDir)
-}
+$extraDownloads.Invoke($templateBaseUrl)
 Get-File ($profileRootBaseUrl + "common/script/powershell") @("CommonDataServicesLogonScript.ps1") ($Env:tempDir)
 
 Get-File-Renaming ("https://github.com/ErikEJ/SqlQueryStress/releases/download/102/SqlQueryStress.zip") "$Env:tempDir\SqlQueryStress.zip"
