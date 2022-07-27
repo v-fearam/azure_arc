@@ -98,7 +98,7 @@ EnablingDataControllerAutoMetrics -resourceGroup $Env:resourceGroup -workspaceNa
 # Applying Azure Data Studio settings template file and operations url shortcut
 if ( $Env:deploySQLMI -eq $true -or $Env:deployPostgreSQL -eq $true ) {
 
-    CopyingAzureDataStudioSettingsRemplateFile -adminUsername $Env:adminUsername -directory $Env:TempDir
+    CopyingAzureDataStudioSettingsTemplateFile -adminUsername $Env:adminUsername -directory $Env:TempDir
 
     # Creating desktop url shortcuts for built-in Grafana and Kibana services
     $GrafanaURL = kubectl get service/metricsui-external-svc -n arc -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
