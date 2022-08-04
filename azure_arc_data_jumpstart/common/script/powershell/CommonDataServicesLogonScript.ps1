@@ -76,10 +76,11 @@ function CreateCustomLocation {
         [string]$resourceGroup,
         [string]$connectedClusterId,
         [string]$extensionId,
-        [string]$KUBECONFIG
+        [string]$KUBECONFIG,
+        [string]$name = 'jumpstart-cl'
     )
     # Create Custom Location
-    az customlocation create --name 'jumpstart-cl' `
+    az customlocation create --name $name `
         --resource-group $resourceGroup `
         --namespace arc `
         --host-resource-id $connectedClusterId `
@@ -98,15 +99,20 @@ function DeployingAzureArcDataController {
         [string]$spnClientId,
         [string]$spnTenantId,
         [string]$spnClientSecret,
-        [string]$subscriptionId
+        [string]$subscriptionId,
+        [string]$name = 'jumpstart-cl',
+        [string]$dataControllerName 
     )
-    $customLocationId = $(az customlocation show --name "jumpstart-cl" --resource-group $resourceGroup --query id -o tsv)
+    $customLocationId = $(az customlocation show --name $name --resource-group $resourceGroup --query id -o tsv)
     $workspaceId = $(az resource show --resource-group $resourceGroup --name $workspaceName --resource-type "Microsoft.OperationalInsights/workspaces" --query properties.customerId -o tsv)
     $workspaceKey = $(az monitor log-analytics workspace get-shared-keys --resource-group $resourceGroup --workspace-name $workspaceName --query primarySharedKey -o tsv)
 
     $dataControllerParams = "$directory\dataController.parameters.json"
 
     (Get-Content -Path $dataControllerParams) -replace 'resourceGroup-stage', $resourceGroup | Set-Content -Path $dataControllerParams
+    if ($dataControllerName) {
+        (Get-Content -Path $dataControllerParams) -replace 'jumpstartdc-stage', $dataControllerName | Set-Content -Path $dataControllerParams
+    }
     (Get-Content -Path $dataControllerParams) -replace 'azdataUsername-stage', $AZDATA_USERNAME | Set-Content -Path $dataControllerParams
     (Get-Content -Path $dataControllerParams) -replace 'azdataPassword-stage', $AZDATA_PASSWORD | Set-Content -Path $dataControllerParams
     (Get-Content -Path $dataControllerParams) -replace 'customLocation-stage', $customLocationId | Set-Content -Path $dataControllerParams
@@ -135,17 +141,18 @@ function DeployingAzureArcDataController {
 function EnablingDataControllerAutoMetrics {
     param (
         [string]$resourceGroup,
-        [string]$workspaceName
+        [string]$workspaceName,
+        [string]$name = 'jumpstart-dc'
     )
     Write-Output "`n"
     Write-Output "Enabling data controller auto metrics & logs upload to log analytics"
     Write-Output "`n"
     $Env:WORKSPACE_ID = $(az resource show --resource-group $resourceGroup --name $workspaceName --resource-type "Microsoft.OperationalInsights/workspaces" --query properties.customerId -o tsv)
     $Env:WORKSPACE_SHARED_KEY = $(az monitor log-analytics workspace get-shared-keys --resource-group $resourceGroup --workspace-name $workspaceName  --query primarySharedKey -o tsv)
-    az arcdata dc update --name jumpstart-dc --resource-group $resourceGroup --auto-upload-logs true
-    az arcdata dc update --name jumpstart-dc --resource-group $resourceGroup --auto-upload-metrics true
+    az arcdata dc update --name $name --resource-group $resourceGroup --auto-upload-logs true
+    az arcdata dc update --name $name --resource-group $resourceGroup --auto-upload-metrics true
 }
-function CopyingAzureDataStudioSettingsRemplateFile {
+function CopyingAzureDataStudioSettingsTemplateFile {
     param (
         [string]$adminUsername,
         [string]$directory
