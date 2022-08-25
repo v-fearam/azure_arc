@@ -100,7 +100,6 @@ function InstallingAzureArcEnabledDataServicesExtensionk8s {
         --release-namespace arc `
         --config Microsoft.CustomLocation.ServiceAccount=sa-arc-bootstrapper `
 }
-
 function InstallingAzureArcEnabledDataServicesExtension {
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingWriteHost", "")]
     param (
@@ -114,7 +113,6 @@ function InstallingAzureArcEnabledDataServicesExtension {
         Write-Host  "Waiting for bootstrapper pod, hold tight...(20s sleeping loop)"
         Start-Sleep -Seconds 20
         $podStatus = $(if (kubectl get pods -n arc | Select-String "bootstrapper" | Select-String "Running" -Quiet) { "Ready!" }Else { "Nope" })
-        Write-Host "Pod status $podStatus"
     } while ($podStatus -eq "Nope")
 
     $connectedClusterId = az connectedk8s show --name $connectedClusterName --resource-group $resourceGroup --query id -o tsv
