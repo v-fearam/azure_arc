@@ -17,10 +17,9 @@ RegisteringAzureArcProviders @("Kubernetes", "KubernetesConfiguration", "Extende
 # Getting AKS cluster credentials kubeconfig file
 GettingAKSClusterCredentialsKubeconfigFile -resourceGroup $Env:resourceGroup -clusterName $Env:clusterName
 
-# Localize kubeconfig
-$Env:KUBECONTEXT = kubectl config current-context
-$Env:KUBECONFIG = "C:\Users\$Env:adminUsername\.kube\config"
-Start-Sleep -Seconds 10
+# Onboarding the AKS cluster as an Azure Arc-enabled Kubernetes cluster
+Write-Output "Onboarding the cluster as an Azure Arc-enabled Kubernetes cluster"
+$kubectlMonShell = (AKSClusterAsAnAzureArcEnabledKubernetesCluster -adminUsername $Env:adminUsername -connectedClusterName $connectedClusterName -resourceGroup $Env:resourceGroup -azureLocation $Env:azureLocation -workspaceName $Env:workspaceName)
 
 # Install and configure DHCP service (used by Hyper-V nested VMs)
 Write-Output "Configuring DHCP Service"
@@ -133,26 +132,6 @@ Invoke-Command -VMName ArcBox-SQL -Credential $winCreds -ScriptBlock {
 Write-Output "Creating Hyper-V Shortcut"
 Write-Output "`n"
 Copy-Item -Path "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Administrative Tools\Hyper-V Manager.lnk" -Destination "C:\Users\All Users\Desktop" -Force
-
-# Create Kubernetes - Azure Arc Cluster
-az connectedk8s connect --name $connectedClusterName `
-                        --resource-group $Env:resourceGroup `
-                        --location $Env:azureLocation `
-                        --tags 'Project=jumpstart_azure_arc_data_services' `
-                        --kube-config $Env:KUBECONFIG `
-                        --kube-context $Env:KUBECONTEXT `
-                        --correlation-id "d009f5dd-dba8-4ac7-bac9-b54ef3a6671a"
-
-Start-Sleep -Seconds 10
-
-# Enabling Container Insights cluster extension
-Write-Output "`n"
-Write-Output "Enabling Container Insights cluster extension"
-az k8s-extension create --name "azuremonitor-containers" --cluster-name $connectedClusterName --resource-group $Env:resourceGroup --cluster-type connectedClusters --extension-type Microsoft.AzureMonitor.Containers --configuration-settings logAnalyticsWorkspaceResourceID=$workspaceId
-Write-Output "`n"
-
-# Monitor pods across arc namespace
-$kubectlMonShell = Start-Process -PassThru PowerShell {for (0 -lt 1) {kubectl get pod -n arc; Start-Sleep -Seconds 5; Clear-Host }}
 
 # Installing Azure Arc-enabled data services extension
 Write-Output "`n"

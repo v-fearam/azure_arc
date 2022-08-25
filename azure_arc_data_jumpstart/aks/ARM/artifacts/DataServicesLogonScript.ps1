@@ -5,36 +5,6 @@ function SetEnviromentVariables() {
     # Deployment environment variables
     $Env:connectedClusterName = "Arc-DataSvc-AKS"
 }
-function AKSClusterAsAnAzureArcEnabledKubernetesCluster {
-    param (
-        [string]$adminUsername,
-        [string]$connectedClusterName,
-        [string]$resourceGroup,
-        [string]$azureLocation,
-        [string]$workspaceName
-    )
-    # Localize kubeconfig
-    $Env:KUBECONTEXT = kubectl config current-context
-    $Env:KUBECONFIG = "C:\Users\$adminUsername\.kube\config"
-    Start-Sleep -Seconds 10
-
-    # Create Kubernetes - Azure Arc Cluster
-    az connectedk8s connect --name $connectedClusterName `
-        --resource-group $resourceGroup `
-        --location $azureLocation `
-        --tags 'Project=jumpstart_azure_arc_data_services' `
-        --kube-config $Env:KUBECONFIG `
-        --kube-context $Env:KUBECONTEXT
-
-    Start-Sleep -Seconds 10
-
-    # Enabling Container Insights cluster extension
-    $workspaceId = $(az resource show --resource-group $resourceGroup --name $workspaceName --resource-type "Microsoft.OperationalInsights/workspaces" --query properties.customerId -o tsv)
-    az k8s-extension create --name "azuremonitor-containers" --cluster-name $connectedClusterName --resource-group $resourceGroup --cluster-type connectedClusters --extension-type Microsoft.AzureMonitor.Containers --configuration-settings logAnalyticsWorkspaceResourceID=$workspaceId
-
-    # Monitor pods across arc namespace
-    return (Start-Process -PassThru PowerShell { for (0 -lt 1) { kubectl get pod -n arc; Start-Sleep -Seconds 5; Clear-Host } })
-}
 
 ## Main Script
 SetEnviromentVariables
