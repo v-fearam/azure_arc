@@ -133,11 +133,22 @@ Write-Output "Creating Hyper-V Shortcut"
 Write-Output "`n"
 Copy-Item -Path "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Administrative Tools\Hyper-V Manager.lnk" -Destination "C:\Users\All Users\Desktop" -Force
 
+InstallingAzureArcEnabledDataServicesExtensionk8s -resourceGroup $Env:resourceGroup -clusterName $connectedClusterName
+
 Write-Output "`n"
-Write-Output "Installing Azure Arc-enabled data services extension"
-$InstallingAzureArcEnabledDataServicesExtensionResult = InstallingAzureArcEnabledDataServicesExtension -clusterName $connectedClusterName -resourceGroup $Env:resourceGroup
-$extensionId = $InstallingAzureArcEnabledDataServicesExtensionResult[$InstallingAzureArcEnabledDataServicesExtensionResult.length - 1]
-$connectedClusterId = $InstallingAzureArcEnabledDataServicesExtensionResult[$InstallingAzureArcEnabledDataServicesExtensionResult.length - 2]
+Do {
+    Write-Output "Waiting for bootstrapper pod, hold tight...(20s sleeping loop)"
+    Start-Sleep -Seconds 20
+    $podStatus = $(if(kubectl get pods -n arc | Select-String "bootstrapper" | Select-String "Running" -Quiet){"Ready!"}Else{"Nope"})
+    } while ($podStatus -eq "Nope")
+
+$connectedClusterId  = az connectedk8s show --name $connectedClusterName --resource-group $Env:resourceGroup --query id -o tsv
+
+$extensionId  = az k8s-extension show --name arc-data-services `
+                                     --cluster-type connectedClusters `
+                                     --cluster-name $connectedClusterName `
+                                     --resource-group $Env:resourceGroup `
+                                     --query id -o tsv
 
 Start-Sleep -Seconds 20
 
