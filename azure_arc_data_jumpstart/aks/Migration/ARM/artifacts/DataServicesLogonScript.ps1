@@ -133,18 +133,7 @@ Write-Output "Creating Hyper-V Shortcut"
 Write-Output "`n"
 Copy-Item -Path "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Administrative Tools\Hyper-V Manager.lnk" -Destination "C:\Users\All Users\Desktop" -Force
 
-# Installing Azure Arc-enabled data services extension
-Write-Output "`n"
-Write-Output "Installing Azure Arc-enabled data services extension"
-az k8s-extension create --name arc-data-services `
-                        --extension-type microsoft.arcdataservices `
-                        --cluster-type connectedClusters `
-                        --cluster-name $connectedClusterName `
-                        --resource-group $Env:resourceGroup `
-                        --auto-upgrade false `
-                        --scope cluster `
-                        --release-namespace arc `
-                        --config Microsoft.CustomLocation.ServiceAccount=sa-arc-bootstrapper `
+InstallingAzureArcEnabledDataServicesExtensionk8s -resourceGroup $Env:resourceGroup -clusterName $connectedClusterName
 
 Write-Output "`n"
 Do {
@@ -169,39 +158,7 @@ CreateCustomLocation -jumpstartcl 'jumpstart-cl' -resourceGroup $Env:resourceGro
 # Deploying Azure Arc Data Controller
 Write-Output "`n"
 Write-Output "Deploying Azure Arc Data Controller"
-Write-Output "`n"
-
-$customLocationId  = $(az customlocation show --name "jumpstart-cl" --resource-group $Env:resourceGroup --query id -o tsv)
-$workspaceId  = $(az resource show --resource-group $Env:resourceGroup --name $Env:workspaceName --resource-type "Microsoft.OperationalInsights/workspaces" --query properties.customerId -o tsv)
-$workspaceKey  = $(az monitor log-analytics workspace get-shared-keys --resource-group $Env:resourceGroup --workspace-name $Env:workspaceName --query primarySharedKey -o tsv)
-
-$dataControllerParams = "$Env:TempDir\dataController.parameters.json"
-
-(Get-Content -Path $dataControllerParams) -replace 'resourceGroup-stage',$Env:resourceGroup | Set-Content -Path $dataControllerParams
-(Get-Content -Path $dataControllerParams) -replace 'azdataUsername-stage',$Env:AZDATA_USERNAME | Set-Content -Path $dataControllerParams
-(Get-Content -Path $dataControllerParams) -replace 'azdataPassword-stage',$Env:AZDATA_PASSWORD | Set-Content -Path $dataControllerParams
-(Get-Content -Path $dataControllerParams) -replace 'customLocation-stage',$customLocationId  | Set-Content -Path $dataControllerParams
-(Get-Content -Path $dataControllerParams) -replace 'subscriptionId-stage',$Env:subscriptionId | Set-Content -Path $dataControllerParams
-(Get-Content -Path $dataControllerParams) -replace 'spnClientId-stage',$Env:spnClientId | Set-Content -Path $dataControllerParams
-(Get-Content -Path $dataControllerParams) -replace 'spnTenantId-stage',$Env:spnTenantId | Set-Content -Path $dataControllerParams
-(Get-Content -Path $dataControllerParams) -replace 'spnClientSecret-stage',$Env:spnClientSecret | Set-Content -Path $dataControllerParams
-(Get-Content -Path $dataControllerParams) -replace 'logAnalyticsWorkspaceId-stage',$workspaceId  | Set-Content -Path $dataControllerParams
-(Get-Content -Path $dataControllerParams) -replace 'logAnalyticsPrimaryKey-stage',$workspaceKey  | Set-Content -Path $dataControllerParams
-
-az deployment group create --resource-group $Env:resourceGroup `
-                           --template-file "$Env:TempDir\dataController.json" `
-                           --parameters "$Env:TempDir\dataController.parameters.json"
-
-Write-Output "`n"
-Do {
-    Write-Output "Waiting for data controller. Hold tight, this might take a few minutes...(45s sleeping loop)"
-    Start-Sleep -Seconds 45
-    $dcStatus = $(if(kubectl get datacontroller -n arc | Select-String "Ready" -Quiet){"Ready!"}Else{"Nope"})
-    } while ($dcStatus -eq "Nope")
-
-Write-Output "`n"
-Write-Output "Azure Arc data controller is ready!"
-Write-Output "`n"
+DeployingAzureArcDataController -resourceGroup $Env:resourceGroup -directory $Env:TempDir -workspaceName $Env:workspaceName -AZDATA_USERNAME $Env:AZDATA_USERNAME -AZDATA_PASSWORD $Env:AZDATA_PASSWORD -spnClientId $Env:spnClientId -spnTenantId $Env:spnTenantId -spnClientSecret $Env:spnClientSecret -subscriptionId $Env:subscriptionId
 
 # If flag set, deploy SQL MI
 if ( $Env:deploySQLMI -eq $true )
