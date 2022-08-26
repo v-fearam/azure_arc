@@ -45,7 +45,7 @@ Write-Output "`n"
 # Onboarding the ARO cluster as an Azure Arc-enabled Kubernetes cluster
 Write-Output "Onboarding the cluster as an Azure Arc-enabled Kubernetes cluster"
 Write-Output "`n"
-$kubectlMonShell = (AKSClusterAsAnAzureArcEnabledKubernetesCluster -adminUsername $Env:adminUsername -connectedClusterName $Env:connectedClusterName -resourceGroup $Env:resourceGroup -azureLocation $Env:azureLocation -workspaceName $Env:workspaceName)
+$kubectlMonShell = (AKSClusterAsAnAzureArcEnabledKubernetesCluster -adminUsername $Env:adminUsername -connectedClusterName $connectedClusterName -resourceGroup $Env:resourceGroup -azureLocation $Env:azureLocation -workspaceName $Env:workspaceName)
 
 # Deploying security context
 Write-Output "Adding security context for ARO"
