@@ -20,53 +20,13 @@ $env:Path += ";$Env:TempDir\OpenShift"
     [EnvironmentVariableTarget]::Machine)
 Write-Output "`n"
 
+SetDefaultSubscription -subscriptionId $Env:subscriptionId
 
-# Set default subscription to run commands against
-# "subscriptionId" value comes from clientVM.json ARM template, based on which 
-# subscription user deployed ARM template to. This is needed in case Service 
-# Principal has access to multiple subscriptions, which can break the automation logic
-az account set --subscription $Env:subscriptionId
+InstallingAzureDataStudioExtensions @("microsoft.azcli", "microsoft.azuredatastudio-postgresql", "Microsoft.arc")
 
-# Installing Azure Data Studio extensions
-Write-Output "`n"
-Write-Output "Installing Azure Data Studio Extensions"
-Write-Output "`n"
-$Env:argument1="--install-extension"
-$Env:argument2="microsoft.azcli"
-$Env:argument3="microsoft.azuredatastudio-postgresql"
-$Env:argument4="Microsoft.arc"
-& "C:\Program Files\Azure Data Studio\bin\azuredatastudio.cmd" $Env:argument1 $Env:argument2
-& "C:\Program Files\Azure Data Studio\bin\azuredatastudio.cmd" $Env:argument1 $Env:argument3
-& "C:\Program Files\Azure Data Studio\bin\azuredatastudio.cmd" $Env:argument1 $Env:argument4
-
-# Creating Azure Data Studio desktop shortcut
-Write-Output "`n"
-Write-Output "Creating Azure Data Studio Desktop shortcut"
-Write-Output "`n"
 Add-Desktop-Shortcut -shortcutName "Azure Data Studio" -targetPath "C:\Program Files\Azure Data Studio\azuredatastudio.exe" -username $Env:adminUsername
 
-# Registering Azure Arc providers
-Write-Output "Registering Azure Arc providers, hold tight..."
-Write-Output "`n"
-az provider register --namespace Microsoft.Kubernetes --wait
-az provider register --namespace Microsoft.KubernetesConfiguration --wait
-az provider register --namespace Microsoft.ExtendedLocation --wait
-az provider register --namespace Microsoft.AzureArcData --wait
-az provider register --namespace Microsoft.RedHatOpenShift --wait
-
-az provider show --namespace Microsoft.Kubernetes -o table
-Write-Output "`n"
-az provider show --namespace Microsoft.KubernetesConfiguration -o table
-Write-Output "`n"
-az provider show --namespace Microsoft.ExtendedLocation -o table
-Write-Output "`n"
-az provider show --namespace Microsoft.AzureArcData -o table
-Write-Output "`n"
-az provider show --namespace Microsoft.RedHatOpenShift -o table
-Write-Output "`n"
-
-Write-Output "`n"
-az -v
+RegisteringAzureArcProviders @("Kubernetes", "KubernetesConfiguration", "ExtendedLocation", "AzureArcData","RedHatOpenShift")
 
 # Getting ARO cluster credentials kubeconfig file
 Write-Output "Getting ARO cluster credentials"
