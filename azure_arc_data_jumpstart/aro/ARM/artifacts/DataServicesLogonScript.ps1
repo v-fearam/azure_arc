@@ -20,53 +20,13 @@ $env:Path += ";$Env:TempDir\OpenShift"
     [EnvironmentVariableTarget]::Machine)
 Write-Output "`n"
 
+SetDefaultSubscription -subscriptionId $Env:subscriptionId
 
-# Set default subscription to run commands against
-# "subscriptionId" value comes from clientVM.json ARM template, based on which 
-# subscription user deployed ARM template to. This is needed in case Service 
-# Principal has access to multiple subscriptions, which can break the automation logic
-az account set --subscription $Env:subscriptionId
+InstallingAzureDataStudioExtensions @("microsoft.azcli", "microsoft.azuredatastudio-postgresql", "Microsoft.arc")
 
-# Installing Azure Data Studio extensions
-Write-Output "`n"
-Write-Output "Installing Azure Data Studio Extensions"
-Write-Output "`n"
-$Env:argument1="--install-extension"
-$Env:argument2="microsoft.azcli"
-$Env:argument3="microsoft.azuredatastudio-postgresql"
-$Env:argument4="Microsoft.arc"
-& "C:\Program Files\Azure Data Studio\bin\azuredatastudio.cmd" $Env:argument1 $Env:argument2
-& "C:\Program Files\Azure Data Studio\bin\azuredatastudio.cmd" $Env:argument1 $Env:argument3
-& "C:\Program Files\Azure Data Studio\bin\azuredatastudio.cmd" $Env:argument1 $Env:argument4
-
-# Creating Azure Data Studio desktop shortcut
-Write-Output "`n"
-Write-Output "Creating Azure Data Studio Desktop shortcut"
-Write-Output "`n"
 Add-Desktop-Shortcut -shortcutName "Azure Data Studio" -targetPath "C:\Program Files\Azure Data Studio\azuredatastudio.exe" -username $Env:adminUsername
 
-# Registering Azure Arc providers
-Write-Output "Registering Azure Arc providers, hold tight..."
-Write-Output "`n"
-az provider register --namespace Microsoft.Kubernetes --wait
-az provider register --namespace Microsoft.KubernetesConfiguration --wait
-az provider register --namespace Microsoft.ExtendedLocation --wait
-az provider register --namespace Microsoft.AzureArcData --wait
-az provider register --namespace Microsoft.RedHatOpenShift --wait
-
-az provider show --namespace Microsoft.Kubernetes -o table
-Write-Output "`n"
-az provider show --namespace Microsoft.KubernetesConfiguration -o table
-Write-Output "`n"
-az provider show --namespace Microsoft.ExtendedLocation -o table
-Write-Output "`n"
-az provider show --namespace Microsoft.AzureArcData -o table
-Write-Output "`n"
-az provider show --namespace Microsoft.RedHatOpenShift -o table
-Write-Output "`n"
-
-Write-Output "`n"
-az -v
+RegisteringAzureArcProviders @("Kubernetes", "KubernetesConfiguration", "ExtendedLocation", "AzureArcData","RedHatOpenShift")
 
 # Getting ARO cluster credentials kubeconfig file
 Write-Output "Getting ARO cluster credentials"
@@ -85,32 +45,7 @@ Write-Output "`n"
 # Onboarding the ARO cluster as an Azure Arc-enabled Kubernetes cluster
 Write-Output "Onboarding the cluster as an Azure Arc-enabled Kubernetes cluster"
 Write-Output "`n"
-
-# Localize kubeconfig
-$Env:KUBECONTEXT = kubectl config current-context
-$Env:KUBECONFIG = "C:\Users\$Env:adminUsername\.kube\config"
-
-Start-Sleep -Seconds 10
-
-# Create Kubernetes - Azure Arc Cluster
-az connectedk8s connect --name $connectedClusterName `
-                        --resource-group $Env:resourceGroup `
-                        --location $Env:azureLocation `
-                        --tags 'Project=jumpstart_azure_arc_data_services' `
-                        --kube-config $Env:KUBECONFIG `
-                        --kube-context $Env:KUBECONTEXT `
-                        --correlation-id "d009f5dd-dba8-4ac7-bac9-b54ef3a6671a"
-
-Start-Sleep -Seconds 10
-
-# Enabling Container Insights and Microsoft Defender for Containers cluster extensions
-Write-Output "`n"
-Write-Output "Enabling Container Insights cluster extensions"
-az k8s-extension create --name "azuremonitor-containers" --cluster-name $connectedClusterName --resource-group $Env:resourceGroup --cluster-type connectedClusters --extension-type Microsoft.AzureMonitor.Containers --configuration-settings logAnalyticsWorkspaceResourceID=$workspaceId
-Write-Output "`n"
-
-# Monitor pods across arc namespace
-$kubectlMonShell = Start-Process -PassThru PowerShell {for (0 -lt 1) {kubectl get pod -n arc; Start-Sleep -Seconds 5; Clear-Host }}
+$kubectlMonShell = (AKSClusterAsAnAzureArcEnabledKubernetesCluster -adminUsername $Env:adminUsername -connectedClusterName $connectedClusterName -resourceGroup $Env:resourceGroup -azureLocation $Env:azureLocation -workspaceName $Env:workspaceName)
 
 # Deploying security context
 Write-Output "Adding security context for ARO"
@@ -124,15 +59,7 @@ Start-Sleep -Seconds 10
 # Installing Azure Arc-enabled data services extension
 Write-Output "`n"
 Write-Output "Installing Azure Arc-enabled data services extension"
-az k8s-extension create --name arc-data-services `
-                        --extension-type microsoft.arcdataservices `
-                        --cluster-type connectedClusters `
-                        --cluster-name $connectedClusterName `
-                        --resource-group $Env:resourceGroup `
-                        --auto-upgrade false `
-                        --scope cluster `
-                        --release-namespace arc `
-                        --config Microsoft.CustomLocation.ServiceAccount=sa-arc-bootstrapper
+InstallingAzureArcEnabledDataServicesExtensionk8s -resourceGroup $Env:resourceGroup -clusterName $connectedClusterName
 
 Write-Output "`n"
 Do {
@@ -208,57 +135,24 @@ if ( $Env:deployPostgreSQL -eq $true )
 & "$Env:TempDir\DeployPostgreSQL.ps1"
 }
 
-# Enabling data controller auto metrics & logs upload to log analytics
-Write-Output "`n"
-Write-Output "Enabling data controller auto metrics & logs upload to log analytics"
-Write-Output "`n"
-$Env:WORKSPACE_ID=$(az resource show --resource-group $Env:resourceGroup --name $Env:workspaceName --resource-type "Microsoft.OperationalInsights/workspaces" --query properties.customerId -o tsv)
-$Env:WORKSPACE_SHARED_KEY=$(az monitor log-analytics workspace get-shared-keys --resource-group $Env:resourceGroup --workspace-name $Env:workspaceName  --query primarySharedKey -o tsv)
-az arcdata dc update --name jumpstart-dc --resource-group $Env:resourceGroup --auto-upload-logs true --use-k8s --k8s-namespace arc
-az arcdata dc update --name jumpstart-dc --resource-group $Env:resourceGroup --auto-upload-metrics true --use-k8s --k8s-namespace arc
+EnablingDataControllerAutoMetrics -resourceGroup $Env:resourceGroup -workspaceName $Env:workspaceName
 
 # Applying Azure Data Studio settings template file and operations url shortcut
 if ( $Env:deploySQLMI -eq $true -or $Env:deployPostgreSQL -eq $true ){
-    Write-Output "`n"
-    Write-Output "Copying Azure Data Studio settings template file"
-    New-Item -Path "C:\Users\$Env:adminUsername\AppData\Roaming\azuredatastudio\" -Name "User" -ItemType "directory" -Force
-    Copy-Item -Path "$Env:TempDir\settingsTemplate.json" -Destination "C:\Users\$Env:adminUsername\AppData\Roaming\azuredatastudio\User\settings.json"
+    CopyingAzureDataStudioSettingsRemplateFile -adminUsername $Env:adminUsername -directory $Env:TempDir
 
-    # Creating desktop url shortcuts for built-in Grafana and Kibana services 
+    # Creating desktop url shortcuts for built-in Grafana and Kibana services
     $GrafanaURL = kubectl get service/metricsui-external-svc -n arc -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
-    $GrafanaURL = "https://"+$GrafanaURL+":3000"
-    $Shell = New-Object -ComObject ("WScript.Shell")
-    $Favorite = $Shell.CreateShortcut($Env:USERPROFILE + "\Desktop\Grafana.url")
-    $Favorite.TargetPath = $GrafanaURL;
-    $Favorite.Save()
+    $GrafanaURL = "https://" + $GrafanaURL + ":3000"
+    Add-URL-Shortcut-Desktop -url $GrafanaURL -name "Grafana" -USERPROFILE $Env:USERPROFILE
 
     $KibanaURL = kubectl get service/logsui-external-svc -n arc -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
-    $KibanaURL = "https://"+$KibanaURL+":5601"
-    $Shell = New-Object -ComObject ("WScript.Shell")
-    $Favorite = $Shell.CreateShortcut($Env:USERPROFILE + "\Desktop\Kibana.url")
-    $Favorite.TargetPath = $KibanaURL;
-    $Favorite.Save()
+    $KibanaURL = "https://" + $KibanaURL + ":5601"
+    Add-URL-Shortcut-Desktop -url $KibanaURL -name "Kibana" -USERPROFILE $Env:USERPROFILE
 }
 
 # Changing to Client VM wallpaper
-$imgPath="$Env:TempDir\wallpaper.png"
-$code = @' 
-using System.Runtime.InteropServices; 
-namespace Win32{ 
-    
-     public class Wallpaper{ 
-        [DllImport("user32.dll", CharSet=CharSet.Auto)] 
-         static extern int SystemParametersInfo (int uAction , int uParam , string lpvParam , int fuWinIni) ; 
-         
-         public static void SetWallpaper(string thePath){ 
-            SystemParametersInfo(20,0,thePath,3); 
-         }
-    }
- } 
-'@
-
-add-type $code 
-[Win32.Wallpaper]::SetWallpaper($imgPath)
+ChangingToClientVMWallpaper -directory $Env:TempDir
 
 # Kill the open PowerShell monitoring kubectl get pods
 Stop-Process -Id $kubectlMonShell.Id
