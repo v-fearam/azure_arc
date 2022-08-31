@@ -1,76 +1,6 @@
 Start-Transcript -Path C:\Temp\DataServicesLogonScript.log
 
-# Deployment environment variables
-$Env:TempDir = "C:\Temp"
-$connectedClusterName = $Env:ArcK8sClusterName
-
-Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
-
-# Required for azcopy
-$azurePassword = ConvertTo-SecureString $Env:spnClientSecret -AsPlainText -Force
-$psCred = New-Object System.Management.Automation.PSCredential($Env:spnClientId , $azurePassword)
-Connect-AzAccount -Credential $psCred -TenantId $Env:spnTenantId -ServicePrincipal
-
-# Login as service principal
-az login --service-principal --username $Env:spnClientId --password $Env:spnClientSecret --tenant $Env:spnTenantId
-
-# Making extension install dynamic
-az config set extension.use_dynamic_install=yes_without_prompt
-# Installing Azure CLI extensions
-Write-Host "`n"
-Write-Host "Installing Azure CLI extensions"
-az extension add --name arcdata
-az extension add --name connectedk8s
-az extension add --name k8s-extension
-Write-Host "`n"
-az -v
-
-# Set default subscription to run commands against
-# "subscriptionId" value comes from clientVM.json ARM template, based on which 
-# subscription user deployed ARM template to. This is needed in case Service 
-# Principal has access to multiple subscriptions, which can break the automation logic
-az account set --subscription $Env:subscriptionId
-
-
-# Installing Azure Data Studio extensions
-Write-Host "`n"
-Write-Host "Installing Azure Data Studio Extensions"
-Write-Host "`n"
-$Env:argument1="--install-extension"
-$Env:argument2="microsoft.azcli"
-$Env:argument3="microsoft.azuredatastudio-postgresql"
-$Env:argument4="Microsoft.arc"
-& "C:\Program Files\Azure Data Studio\bin\azuredatastudio.cmd" $Env:argument1 $Env:argument2
-& "C:\Program Files\Azure Data Studio\bin\azuredatastudio.cmd" $Env:argument1 $Env:argument3
-& "C:\Program Files\Azure Data Studio\bin\azuredatastudio.cmd" $Env:argument1 $Env:argument4
-
-# Creating Azure Data Studio desktop shortcut
-Write-Host "`n"
-Write-Host "Creating Azure Data Studio Desktop shortcut"
-Write-Host "`n"
-$TargetFile = "C:\Program Files\Azure Data Studio\azuredatastudio.exe"
-$ShortcutFile = "C:\Users\$Env:adminUsername\Desktop\Azure Data Studio.lnk"
-$WScriptShell = New-Object -ComObject WScript.Shell
-$Shortcut = $WScriptShell.CreateShortcut($ShortcutFile)
-$Shortcut.TargetPath = $TargetFile
-$Shortcut.Save()
-
-# Registering Azure Arc providers
-Write-Host "Registering Azure Arc providers, hold tight..."
-Write-Host "`n"
-az provider register --namespace Microsoft.Kubernetes --wait
-az provider register --namespace Microsoft.KubernetesConfiguration --wait
-az provider register --namespace Microsoft.ExtendedLocation --wait
-az provider register --namespace Microsoft.AzureArcData --wait
-
-az provider show --namespace Microsoft.Kubernetes -o table
-Write-Host "`n"
-az provider show --namespace Microsoft.KubernetesConfiguration -o table
-Write-Host "`n"
-az provider show --namespace Microsoft.ExtendedLocation -o table
-Write-Host "`n"
-az provider show --namespace Microsoft.AzureArcData -o table
-Write-Host "`n"
+InitializeArcDataCommonAtLogonScript 
 
 # Downloading CAPI Kubernetes cluster kubeconfig file
 Write-Host "Downloading CAPI Kubernetes cluster kubeconfig file"
@@ -106,7 +36,7 @@ Write-Host "Installing Azure Arc-enabled data services extension"
 az k8s-extension create --name arc-data-services `
                         --extension-type microsoft.arcdataservices `
                         --cluster-type connectedClusters `
-                        --cluster-name $connectedClusterName `
+                        --cluster-name $Env:ArcK8sClusterName `
                         --resource-group $Env:resourceGroup `
                         --auto-upgrade false `
                         --scope cluster `
@@ -120,11 +50,11 @@ Do {
     $podStatus = $(if(kubectl get pods -n arc | Select-String "bootstrapper" | Select-String "Running" -Quiet){"Ready!"}Else{"Nope"})
     } while ($podStatus -eq "Nope")
 
-$connectedClusterId = az connectedk8s show --name $connectedClusterName --resource-group $Env:resourceGroup --query id -o tsv
+$connectedClusterId = az connectedk8s show --name $Env:ArcK8sClusterName --resource-group $Env:resourceGroup --query id -o tsv
 
 $extensionId = az k8s-extension show --name arc-data-services `
                                      --cluster-type connectedClusters `
-                                     --cluster-name $connectedClusterName `
+                                     --cluster-name $Env:ArcK8sClusterName `
                                      --resource-group $Env:resourceGroup `
                                      --query id -o tsv
 
