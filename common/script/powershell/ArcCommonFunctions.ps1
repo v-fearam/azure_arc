@@ -74,7 +74,7 @@ function BoostrapArcData {
     Invoke-WebRequest -Uri ("https://github.com/ErikEJ/SqlQueryStress/releases/download/102/SqlQueryStress.zip") -OutFile "$Env:tempDir\SqlQueryStress.zip"
     Invoke-WebRequest -Uri ($profileRootBaseUrl + "../img/arcbox_wallpaper.png") -OutFile "$Env:tempDir\wallpaper.png"
 
-    Expand-Archive $Env:tempDir\azuredatastudio.zip -DestinationPath 'C:\Program Files\Azure Data Studio'
+    Expand-Archive $Env:tempDir\azuredatastudio.zip -DestinationPath 'C:\Program Files\Azure Data Studio' -Force
     Start-Process msiexec.exe -Wait -ArgumentList '/I C:\Temp\AZDataCLI.msi /quiet'
 
     New-Item -path alias:kubectl -value 'C:\ProgramData\chocolatey\lib\kubernetes-cli\tools\kubernetes\client\bin\kubectl.exe'
@@ -208,5 +208,33 @@ function InitializeArcDataCommonAtLogonScript {
     AddDesktopShortcut -shortcutName "Azure Data Studio" -targetPath "C:\Program Files\Azure Data Studio\azuredatastudio.exe" -username $Env:adminUsername
 
     RegisterAzureArcProviders -arcProviderList $arcProviderList
+}
+
+function DownloadCapiFiles {
+    param (
+        [string]$stagingStorageAccountName,
+        [string]$resourceGroup,
+        [string]$username,
+        [string]$folder
+    )
+    # Downloading CAPI Kubernetes cluster kubeconfig file
+    Write-Output "Downloading CAPI Kubernetes cluster kubeconfig file"
+    $sourceFile = "https://$stagingStorageAccountName.blob.core.windows.net/staging-capi/config"
+    $context = (Get-AzStorageAccount -ResourceGroupName $resourceGroup).Context
+    $sas = New-AzStorageAccountSASToken -Context $context -Service Blob -ResourceType Object -Permission racwdlup
+    $sourceFile = $sourceFile + $sas
+    azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "C:\Users\$username\.kube\config"
+
+    # Downloading 'installCAPI.log' log file
+    Write-Output "Downloading 'installCAPI.log' log file"
+    $sourceFile = "https://$stagingStorageAccountName.blob.core.windows.net/staging-capi/installCAPI.log"
+    $sourceFile = $sourceFile + $sas
+    azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "$folder\installCAPI.log"
+
+    Write-Output "`n"
+    Write-Output "Checking kubernetes nodes"
+    Write-Output "`n"
+    kubectl get nodes
+    Write-Output "`n"
 }
 

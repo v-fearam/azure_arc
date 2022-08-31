@@ -2,25 +2,7 @@ Start-Transcript -Path C:\Temp\DataServicesLogonScript.log
 
 InitializeArcDataCommonAtLogonScript 
 
-# Downloading CAPI Kubernetes cluster kubeconfig file
-Write-Host "Downloading CAPI Kubernetes cluster kubeconfig file"
-$sourceFile = "https://$Env:stagingStorageAccountName.blob.core.windows.net/staging-capi/config"
-$context = (Get-AzStorageAccount -ResourceGroupName $Env:resourceGroup).Context
-$sas = New-AzStorageAccountSASToken -Context $context -Service Blob -ResourceType Object -Permission racwdlup
-$sourceFile = $sourceFile + $sas
-azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "C:\Users\$Env:USERNAME\.kube\config"
-
-# Downloading 'installCAPI.log' log file
-Write-Host "Downloading 'installCAPI.log' log file"
-$sourceFile = "https://$Env:stagingStorageAccountName.blob.core.windows.net/staging-capi/installCAPI.log"
-$sourceFile = $sourceFile + $sas
-azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "$Env:TempDir\installCAPI.log"
-
-Write-Host "`n"
-Write-Host "Checking kubernetes nodes"
-Write-Host "`n"
-kubectl get nodes
-Write-Host "`n"
+DownloadCapiFiles -stagingStorageAccountName "$Env:stagingStorageAccountName" -resourceGroup "$Env:resourceGroup" -username "$Env:USERNAME" -folder "$Env:TempDir"
 
 # Localize kubeconfig
 $Env:KUBECONTEXT = kubectl config current-context
