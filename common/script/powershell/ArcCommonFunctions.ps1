@@ -217,7 +217,6 @@ function InitializeArcDataCommonAtLogonScript {
 
     RegisterAzureArcProviders -arcProviderList $arcProviderList
 }
-
 function DownloadCapiFiles {
     param (
         [string]$stagingStorageAccountName,
@@ -277,7 +276,6 @@ function AddURLShortcutDesktop {
     $Favorite.TargetPath = $url;
     $Favorite.Save()
 }
-
 function CopyAzureDataStudioSettingsRemplateFile {
     param (
         [string]$adminUsername,
@@ -287,7 +285,6 @@ function CopyAzureDataStudioSettingsRemplateFile {
     New-Item -Path "C:\Users\$adminUsername\AppData\Roaming\azuredatastudio\" -Name "User" -ItemType "directory" -Force
     Copy-Item -Path "$folder\settingsTemplate.json" -Destination "C:\Users\$adminUsername\AppData\Roaming\azuredatastudio\User\settings.json"
 }
-
 function ApplyAzureDataStudioSettingsTemplateFileAndOperationsUrlShortcut {
     param (
         [string]$adminUsername,
@@ -302,11 +299,11 @@ function ApplyAzureDataStudioSettingsTemplateFileAndOperationsUrlShortcut {
         # Creating desktop url shortcuts for built-in Grafana and Kibana services 
         $GrafanaURL = kubectl get service/metricsui-external-svc -n arc -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
         $GrafanaURL = "https://" + $GrafanaURL + ":3000"
-        AddURLShortcutDesktop -url $GrafanaURL -name "Grafana" userProfile $userProfile
+        AddURLShortcutDesktop -url $GrafanaURL -name "Grafana" -userProfile $userProfile
 
         $KibanaURL = kubectl get service/logsui-external-svc -n arc -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
         $KibanaURL = "https://" + $KibanaURL + ":5601"
-        AddURLShortcutDesktop -url $KibanaURL -name "Kibana" userProfile $userProfile
+        AddURLShortcutDesktop -url $KibanaURL -name "Kibana" -userProfile $userProfile
     }
 }
 function EnablingDataControllerAutoMetrics {
@@ -335,6 +332,7 @@ function DeployAzureArcDataController {
         [string]$spnClientSecret,
         [string]$subscriptionId
     )
+    Write-Header "Deploying Azure Arc Data Controller"
     $customLocationId = $(az customlocation show --name "jumpstart-cl" --resource-group $resourceGroup --query id -o tsv)
     $workspaceId = $(az resource show --resource-group $resourceGroup --name $workspaceName --resource-type "Microsoft.OperationalInsights/workspaces" --query properties.customerId -o tsv)
     $workspaceKey = $(az monitor log-analytics workspace get-shared-keys --resource-group $resourceGroup --workspace-name $workspaceName --query primarySharedKey -o tsv)
@@ -365,7 +363,6 @@ function DeployAzureArcDataController {
 
     Write-Header "Azure Arc data controller is ready!"
 }
-
 function CreateCustomLocation {
     param (
         [string]$resourceGroup,
@@ -392,5 +389,25 @@ function CreateCustomLocation {
         --kubeconfig $KUBECONFIG
     
 }
+function InstallAzureArcEnabledDataServicesExtension {
+    param (
+        [string]$resourceGroup,
+        [string]$clusterName
+    )
+    Write-Header "Installing Azure Arc-enabled data services extension"
+    az k8s-extension create --name arc-data-services `
+        --extension-type microsoft.arcdataservices `
+        --cluster-type connectedClusters `
+        --cluster-name $Env:ArcK8sClusterName `
+        --resource-group $Env:resourceGroup `
+        --auto-upgrade false `
+        --scope cluster `
+        --release-namespace arc `
+        --config Microsoft.CustomLocation.ServiceAccount=sa-arc-bootstrapper `
 
-
+    Do {
+        Write-Output "Waiting for bootstrapper pod, hold tight...(20s sleeping loop)"
+        Start-Sleep -Seconds 20
+        $podStatus = $(if (kubectl get pods -n arc | Select-String "bootstrapper" | Select-String "Running" -Quiet) { "Ready!" }Else { "Nope" })
+    } while ($podStatus -eq "Nope")
+}

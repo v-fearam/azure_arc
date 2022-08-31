@@ -12,28 +12,11 @@ Start-Sleep -Seconds 10
 
 $kubectlMonShell = Start-Process -PassThru PowerShell { for (0 -lt 1) { kubectl get pod -n arc; Start-Sleep -Seconds 5; Clear-Host } }
 
-# Installing Azure Arc-enabled data services extension
-Write-Header "Installing Azure Arc-enabled data services extension"
-az k8s-extension create --name arc-data-services `
-    --extension-type microsoft.arcdataservices `
-    --cluster-type connectedClusters `
-    --cluster-name $Env:ArcK8sClusterName `
-    --resource-group $Env:resourceGroup `
-    --auto-upgrade false `
-    --scope cluster `
-    --release-namespace arc `
-    --config Microsoft.CustomLocation.ServiceAccount=sa-arc-bootstrapper `
-
-Do {
-    Write-Output "Waiting for bootstrapper pod, hold tight...(20s sleeping loop)"
-    Start-Sleep -Seconds 20
-    $podStatus = $(if (kubectl get pods -n arc | Select-String "bootstrapper" | Select-String "Running" -Quiet) { "Ready!" }Else { "Nope" })
-} while ($podStatus -eq "Nope")
+InstallAzureArcEnabledDataServicesExtension -resourceGroup $Env:resourceGroup -clusterName $Env:ArcK8sClusterName
 
 CreateCustomLocation -resourceGroup $Env:resourceGroup -clusterName $Env:ArcK8sClusterName -KUBECONFIG $Env:KUBECONFIG
 
-Write-Header "Deploying Azure Arc Data Controller"
-DeployingAzureArcDataController -resourceGroup $Env:resourceGroup -directory $Env:TempDir -workspaceName $Env:workspaceName -AZDATA_USERNAME $Env:AZDATA_USERNAME -AZDATA_PASSWORD $Env:AZDATA_PASSWORD -spnClientId $Env:spnClientId -spnTenantId $Env:spnTenantId -spnClientSecret $Env:spnClientSecret -subscriptionId $Env:subscriptionId
+DeployAzureArcDataController -resourceGroup $Env:resourceGroup -directory $Env:TempDir -workspaceName $Env:workspaceName -AZDATA_USERNAME $Env:AZDATA_USERNAME -AZDATA_PASSWORD $Env:AZDATA_PASSWORD -spnClientId $Env:spnClientId -spnTenantId $Env:spnTenantId -spnClientSecret $Env:spnClientSecret -subscriptionId $Env:subscriptionId
 
 # If flag set, deploy SQL MI
 if ( $Env:deploySQLMI -eq $true ) {
