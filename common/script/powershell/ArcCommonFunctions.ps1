@@ -1,5 +1,17 @@
 Write-Output "Arc Common Functions"
 
+function Write-Header {
+    param (
+        [string]
+        $title
+    )
+
+    Write-Host
+    Write-Host ("#" * ($title.Length + 8))
+    Write-Host "# - $title"
+    Write-Host ("#" * ($title.Length + 8))
+    Write-Host
+}
 function InstallChocolateyApp {
     param(
         [string[]]$chocolateyAppList
@@ -8,7 +20,7 @@ function InstallChocolateyApp {
         choco config get cacheLocation
     }
     catch {
-        Write-Output "Chocolatey not detected, trying to install now"
+        Write-Header "Chocolatey not detected, trying to install now"
         Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
     }
     foreach ($app in $chocolateyAppList) {
@@ -32,7 +44,7 @@ function BoostrapArcData {
     Disable-WindowsOptionalFeature -FeatureName Internet-Explorer-Optional-amd64 -Online -NoRestart
 
     # Disabling IE Enhanced Security Configuration
-    Write-Output "Disabling IE Enhanced Security Configuration"
+    Write-Header "Disabling IE Enhanced Security Configuration"
     function Disable-ieESC {
         $AdminKey = "HKLM:\SOFTWARE\Microsoft\Active Setup\Installed Components\{A509B1A7-37EF-4b3f-8CFC-4F3A74704073}"
         $UserKey = "HKLM:\SOFTWARE\Microsoft\Active Setup\Installed Components\{A509B1A8-37EF-4b3f-8CFC-4F3A74704073}"
@@ -44,11 +56,11 @@ function BoostrapArcData {
     Disable-ieESC
 
     # Extending C:\ partition to the maximum size
-    Write-Output "Extending C:\ partition to the maximum size"
+    Write-Header "Extending C:\ partition to the maximum size"
     Resize-Partition -DriveLetter C -Size $(Get-PartitionSupportedSize -DriveLetter C).SizeMax
 
     # Installing tools
-    Write-Output "Installing Chocolatey Apps"
+    Write-Header "Installing Chocolatey Apps"
     $chocolateyAppList = $extraChocolateyAppList + @("azure-cli", "az.powershell", "kubernetes-cli", "kubectx", "vcredist140", "microsoft-edge", "azcopy10", "vscode", "putty.install", "kubernetes-helm", "grep", "ssms", "dotnetcore-3.1-sdk", "git", "7zip")
     InstallChocolateyApp $chocolateyAppList
 
@@ -100,9 +112,7 @@ function AddDesktopShortcut {
         [string] $username
     )
     #If WindowStyle is 1, then the application window will be set to its default location and size. If this property has a value of 3, the application will be launched in a maximized window, and if it has a value of 7, it will be launched in a minimized window.
-    Write-Output "`n"
-    Write-Output "Creating $shortcutName Desktop shortcut"
-    Write-Output "`n"
+    Write-Header "Creating $shortcutName Desktop shortcut"
     if ( -not $username) {
         $shortcutLocation = "$Env:Public\Desktop\$shortcutName.lnk"
     }
@@ -126,7 +136,7 @@ function InstallAzureArcDataAzureCliExtensions {
         [string[]] $extraAzExtensions = @(),
         [switch] $notInstallK8extensions
     )
-    Write-Output "Installing Azure CLI extensions"
+    Write-Header "Installing Azure CLI extensions"
     if ($notInstallK8extensions) {
         $k8extensions = @()
     }
@@ -143,9 +153,7 @@ function InstallAzureDataStudioExtensions {
     param (
         [string[]] $azureDataStudioExtensions
     )
-    Write-Output "`n"
-    Write-Output "Installing Azure Data Studio Extensions"
-    Write-Output "`n"
+    Write-Header "Installing Azure Data Studio Extensions"
     $Env:argument1 = "--install-extension"
     foreach ($extension in $azureDataStudioExtensions) {
         Write-Output "Installing Arc Data Studio extention: $extension"
@@ -188,7 +196,7 @@ function InitializeArcDataCommonAtLogonScript {
     # Making extension install dynamic
     az config set extension.use_dynamic_install=yes_without_prompt
 
-    Write-Output "Az cli version"
+    Write-Header "Az cli version"
     az -v
     if ($notInstallK8extensions) {
         InstallAzureArcDataAzureCliExtensions -extraAzExtensions $extraAzExtensions
@@ -218,7 +226,7 @@ function DownloadCapiFiles {
         [string]$folder
     )
     # Downloading CAPI Kubernetes cluster kubeconfig file
-    Write-Output "Downloading CAPI Kubernetes cluster kubeconfig file"
+    Write-Header "Downloading CAPI Kubernetes cluster kubeconfig file"
     $sourceFile = "https://$stagingStorageAccountName.blob.core.windows.net/staging-capi/config"
     $context = (Get-AzStorageAccount -ResourceGroupName $resourceGroup).Context
     $sas = New-AzStorageAccountSASToken -Context $context -Service Blob -ResourceType Object -Permission racwdlup
@@ -226,15 +234,163 @@ function DownloadCapiFiles {
     azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "C:\Users\$username\.kube\config"
 
     # Downloading 'installCAPI.log' log file
-    Write-Output "Downloading 'installCAPI.log' log file"
+    Write-Header "Downloading 'installCAPI.log' log file"
     $sourceFile = "https://$stagingStorageAccountName.blob.core.windows.net/staging-capi/installCAPI.log"
     $sourceFile = $sourceFile + $sas
     azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "$folder\installCAPI.log"
 
-    Write-Output "`n"
-    Write-Output "Checking kubernetes nodes"
-    Write-Output "`n"
+    Write-Header "Checking kubernetes nodes"
     kubectl get nodes
-    Write-Output "`n"
 }
+function ChangingToClientVMWallpaper {
+    param (
+        [string]$directory
+    )
+
+    $imgPath = "$directory\wallpaper.png"
+    $code = @'
+using System.Runtime.InteropServices;
+namespace Win32{
+
+     public class Wallpaper{
+        [DllImport("user32.dll", CharSet=CharSet.Auto)]
+         static extern int SystemParametersInfo (int uAction , int uParam , string lpvParam , int fuWinIni) ;
+
+         public static void SetWallpaper(string thePath){
+            SystemParametersInfo(20,0,thePath,3);
+         }
+    }
+ }
+'@
+
+    add-type $code
+    [Win32.Wallpaper]::SetWallpaper($imgPath)
+}
+function AddURLShortcutDesktop {
+    param (
+        [string]$url,
+        [string]$name,
+        [string]$userProfile
+    )
+    $Shell = New-Object -ComObject ("WScript.Shell")
+    $Favorite = $Shell.CreateShortcut($userProfile + "\Desktop\$name.url")
+    $Favorite.TargetPath = $url;
+    $Favorite.Save()
+}
+
+function CopyAzureDataStudioSettingsRemplateFile {
+    param (
+        [string]$adminUsername,
+        [string]$folder
+    )
+    Write-Header "Copying Azure Data Studio settings template file"
+    New-Item -Path "C:\Users\$adminUsername\AppData\Roaming\azuredatastudio\" -Name "User" -ItemType "directory" -Force
+    Copy-Item -Path "$folder\settingsTemplate.json" -Destination "C:\Users\$adminUsername\AppData\Roaming\azuredatastudio\User\settings.json"
+}
+
+function ApplyAzureDataStudioSettingsTemplateFileAndOperationsUrlShortcut {
+    param (
+        [string]$adminUsername,
+        [string]$folder,
+        [string]$userProfile,
+        [string]$deploySQLMI,
+        [string]$deployPostgreSQL
+    )
+    if ( $deploySQLMI -eq $true -or $deployPostgreSQL -eq $true ) {
+        CopyAzureDataStudioSettingsRemplateFile -adminUsername $adminUsername -folder $folder
+    
+        # Creating desktop url shortcuts for built-in Grafana and Kibana services 
+        $GrafanaURL = kubectl get service/metricsui-external-svc -n arc -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+        $GrafanaURL = "https://" + $GrafanaURL + ":3000"
+        AddURLShortcutDesktop -url $GrafanaURL -name "Grafana" userProfile $userProfile
+
+        $KibanaURL = kubectl get service/logsui-external-svc -n arc -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+        $KibanaURL = "https://" + $KibanaURL + ":5601"
+        AddURLShortcutDesktop -url $KibanaURL -name "Kibana" userProfile $userProfile
+    }
+}
+function EnablingDataControllerAutoMetrics {
+    param (
+        [string]$resourceGroup,
+        [string]$workspaceName,
+        [string]$jumpstartdc = "jumpstart-dc"
+    )
+    Write-Header "Enabling data controller auto metrics & logs upload to log analytics"
+    $Env:WORKSPACE_ID = $(az resource show --resource-group $resourceGroup --name $workspaceName --resource-type "Microsoft.OperationalInsights/workspaces" --query properties.customerId -o tsv)
+    $Env:WORKSPACE_SHARED_KEY = $(az monitor log-analytics workspace get-shared-keys --resource-group $resourceGroup --workspace-name $workspaceName  --query primarySharedKey -o tsv)
+    az arcdata dc update --name $jumpstartdc --resource-group $resourceGroup --auto-upload-logs true
+    az arcdata dc update --name $jumpstartdc --resource-group $resourceGroup --auto-upload-metrics true
+}
+function DeployAzureArcDataController {
+    [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingPlainTextForPassword", "")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingUsernameAndPasswordParams", "")]
+    param (
+        [string]$resourceGroup,
+        [string]$directory,
+        [string]$workspaceName,
+        [string]$AZDATA_USERNAME,
+        [string]$AZDATA_PASSWORD,
+        [string]$spnClientId,
+        [string]$spnTenantId,
+        [string]$spnClientSecret,
+        [string]$subscriptionId
+    )
+    $customLocationId = $(az customlocation show --name "jumpstart-cl" --resource-group $resourceGroup --query id -o tsv)
+    $workspaceId = $(az resource show --resource-group $resourceGroup --name $workspaceName --resource-type "Microsoft.OperationalInsights/workspaces" --query properties.customerId -o tsv)
+    $workspaceKey = $(az monitor log-analytics workspace get-shared-keys --resource-group $resourceGroup --workspace-name $workspaceName --query primarySharedKey -o tsv)
+
+    $dataControllerParams = "$directory\dataController.parameters.json"
+
+    (Get-Content -Path $dataControllerParams) -replace 'resourceGroup-stage', $resourceGroup | Set-Content -Path $dataControllerParams
+    (Get-Content -Path $dataControllerParams) -replace 'azdataUsername-stage', $AZDATA_USERNAME | Set-Content -Path $dataControllerParams
+    (Get-Content -Path $dataControllerParams) -replace 'azdataPassword-stage', $AZDATA_PASSWORD | Set-Content -Path $dataControllerParams
+    (Get-Content -Path $dataControllerParams) -replace 'customLocation-stage', $customLocationId | Set-Content -Path $dataControllerParams
+    (Get-Content -Path $dataControllerParams) -replace 'subscriptionId-stage', $subscriptionId | Set-Content -Path $dataControllerParams
+    (Get-Content -Path $dataControllerParams) -replace 'spnClientId-stage', $spnClientId | Set-Content -Path $dataControllerParams
+    (Get-Content -Path $dataControllerParams) -replace 'spnTenantId-stage', $spnTenantId | Set-Content -Path $dataControllerParams
+    (Get-Content -Path $dataControllerParams) -replace 'spnClientSecret-stage', $spnClientSecret | Set-Content -Path $dataControllerParams
+    (Get-Content -Path $dataControllerParams) -replace 'logAnalyticsWorkspaceId-stage', $workspaceId | Set-Content -Path $dataControllerParams
+    (Get-Content -Path $dataControllerParams) -replace 'logAnalyticsPrimaryKey-stage', $workspaceKey | Set-Content -Path $dataControllerParams
+
+    az deployment group create --resource-group $resourceGroup `
+        --template-file "$directory\dataController.json" `
+        --parameters "$directory\dataController.parameters.json"
+
+    Write-Output "`n"
+    Do {
+        Write-Output "Waiting for data controller. Hold tight, this might take a few minutes...(45s sleeping loop)"
+        Start-Sleep -Seconds 45
+        $dcStatus = $(if (kubectl get datacontroller -n arc | Select-String "Ready" -Quiet) { "Ready!" }Else { "Nope" })
+    } while ($dcStatus -eq "Nope")
+
+    Write-Header "Azure Arc data controller is ready!"
+}
+
+function CreateCustomLocation {
+    param (
+        [string]$resourceGroup,
+        [string]$clusterName,
+        [string]$KUBECONFIG,
+        [string]$jumpstartcl = 'jumpstart-cl'
+    )
+    Write-Header "Create Custom Location"
+    $connectedClusterId = az connectedk8s show --name $clusterName --resource-group $resourceGroup --query id -o tsv
+
+    $extensionId = az k8s-extension show --name arc-data-services `
+        --cluster-type connectedClusters `
+        --cluster-name $clusterName `
+        --resource-group $resourceGroup `
+        --query id -o tsv
+
+    Start-Sleep -Seconds 20
+    # Create Custom Location
+    az customlocation create --name $jumpstartcl `
+        --resource-group $resourceGroup `
+        --namespace arc `
+        --host-resource-id $connectedClusterId `
+        --cluster-extension-ids $extensionId `
+        --kubeconfig $KUBECONFIG
+    
+}
+
 
