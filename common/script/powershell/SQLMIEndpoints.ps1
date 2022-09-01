@@ -4,33 +4,12 @@ function CreateSQLMIEndpoints {
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingPlainTextForPassword", "")]
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingUsernameAndPasswordParams", "")]
     param (
-        [string]
-        # Folder where the template is located
-        $folder,
-        [string]
-        #VM user admin
-        $adminUsername,
-        [string]
-        # Az username to be included on the file
-        $azdataUsername,
-        [string]
-        # Az passworf to be included on the file
-        $azdataPassword,
-        [string]
-        # true if SQLMIHA was deployed
-        $SQLMIHA
+        [string]$folder,
+        [string]$adminUsername,
+        [string]$azdataUsername,
+        [string]$azdataPassword,
+        [string]$SQLMIHA
     )
-    <#
-        .DESCRIPTION
-        Deploy Azure Arc SQLManagedInstance  enpoint
-        
-        .OUTPUTS
-        A file on the desktop with the endpoints
-
-        .EXAMPLE
-        >  CreateSQLMIEndpoints -folder $folder -adminUsername $adminUsername -azdataUsername $azdataUsername -azdataPassword $azdataPassword -SQLMIHA $SQLMIHA
-
-    #>
     Write-Header "Creating SQLMI Endpoints"
 
     New-Item -Path "$folder" -Name "SQLMIEndpoints.txt" -ItemType "file" 

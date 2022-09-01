@@ -2,48 +2,18 @@ function DeployAzureArcSQLManagedInstance {
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingPlainTextForPassword", "")]
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingUsernameAndPasswordParams", "")]
     param (
-        [string]
-        # Resource group where the resource are being created
-        $resourceGroup,
-        [string]
-        # Folder where the config files are present
-        $folder,
-        [string]
-        # VM admin username
-        $adminUsername,
-        [string]
-        # Az username needed for SQLManagedInstance configuration
-        $azdataUsername,
-        [string]
-        # Az password needed for SQLManagedInstance configuration
-        $azdataPassword,
-        [string]
-        # Azure subscription id needed for SQLManagedInstance configuration
-        $subscriptionId,
-        [string]
-        # true if SQLMIHA was deployed
-        $SQLMIHA,
-        [string]
-        # true if PostgreSQL was deployed
-        $deployPostgreSQL,
-        [string]
-        # Data controller name
-        $controllerName = "jumpstart-dc",
-        [string]
-        # Custom location name
-        $customLocation = "jumpstart-cl"
+        [string]$resourceGroup,
+        [string]$folder,
+        [string]$adminUsername,
+        [string]$azdataUsername,
+        [string]$azdataPassword,
+        [string]$subscriptionId,
+        [string]$SQLMIHA,
+        [string]$deployPostgreSQL,
+        [string]$controllerName = "jumpstart-dc",
+        [string]$customLocation = "jumpstart-cl"
     )
-    <#
-        .DESCRIPTION
-        Deploy  Azure Arc-enabled SQLManagedInstance  
-        
-        .OUTPUTS
-        Azure Arc-enabled SQLManagedInstance on the k8s cluster
-
-        .EXAMPLE
-        >  DeployAzureArcSQLManagedInstance -resourceGroup $Env:resourceGroup -folder $Env:TempDir -adminUsername $Env:adminUsername -azdataUsername $Env:AZDATA_USERNAME -azdataPassword $env:AZDATA_PASSWORD -subscriptionId $Env:subscriptionId -SQLMIHA $env:SQLMIHA -deployPostgreSQL $Env:deployPostgreSQL
-    #>
-    Write-Header "Deploying Azure Arc-enabled SQL Managed Instance"
+    Write-Header "Deploying Azure Arc SQL Managed Instance"
 
     $customLocationId = $(az customlocation show --name $customLocation --resource-group $resourceGroup --query id -o tsv)
     $dataControllerId = $(az resource show --resource-group $resourceGroup --name $controllerName --resource-type "Microsoft.AzureArcData/dataControllers" --query id -o tsv)
@@ -111,7 +81,7 @@ function DeployAzureArcSQLManagedInstance {
         $dcStatus = $(if (kubectl get sqlmanagedinstances -n arc | Select-String "Ready" -Quiet) { "Ready!" }Else { "Nope" })
     } while ($dcStatus -eq "Nope")
 
-    Write-Header  "Azure Arc-enabled SQL Managed Instance is ready!"
+    Write-Header  "Azure Arc SQL Managed Instance is ready!"
 
     # Update Service Port from 1433 to Non-Standard
     $payload = '{\"spec\":{\"ports\":[{\"name\":\"port-mssql-tds\",\"port\":11433,\"targetPort\":1433}]}}'

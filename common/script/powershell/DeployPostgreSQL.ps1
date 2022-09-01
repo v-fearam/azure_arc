@@ -2,39 +2,15 @@ function DeployAzureArcPostgreSQL {
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingPlainTextForPassword", "")]
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingUsernameAndPasswordParams", "")]
     param (
-        [string]
-        # Resource group where the resource are being created
-        $resourceGroup,
-        [string]
-        # Folder where the config files are present
-        $folder,
-        [string]
-        # Az password needed for PostgreSQL configuration
-        $azdataPassword,
-        [string]
-        # Azure subscription id needed for PostgreSQL configuration
-        $subscriptionId,
-        [string]
-        # true if SQLMI was deployed
-        $deploySQLMI,
-        [string]
-        # Data controller name
-        $controllerName = "jumpstart-dc",
-        [string]
-        # Custom location name
-        $customLocation = "jumpstart-cl"
+        [string]$resourceGroup,
+        [string]$folder,
+        [string]$azdataPassword,
+        [string]$subscriptionId,
+        [string]$deploySQLMI,
+        [string]$controllerName = "jumpstart-dc",
+        [string]$customLocation = "jumpstart-cl"
     )
-    <#
-        .DESCRIPTION
-        Deploy  Azure Arc-enabled PostgreSQL  
-        
-        .OUTPUTS
-        Azure Arc-enabled PostgreSQL on the k8s cluster
-
-        .EXAMPLE
-        > DeployAzureArcPostgreSQL  -resourceGroup $Env:resourceGroup -folder $Env:TempDir -azdataPassword $env:AZDATA_PASSWORD -subscriptionId $Env:subscriptionId -deploySQLMI $env:deploySQLMI
-    #>
-    Write-Header "Deploying Azure Arc-enabled PostgreSQL"
+    Write-Header "Deploying Azure Arc PostgreSQL"
    
     $customLocationId = $(az customlocation show --name $customLocation --resource-group $resourceGroup --query id -o tsv)
     $dataControllerId = $(az resource show --resource-group $resourceGroup --name $controllerName --resource-type "Microsoft.AzureArcData/dataControllers" --query id -o tsv)
@@ -83,24 +59,30 @@ function DeployAzureArcPostgreSQL {
         --parameters "$folder\postgreSQL.parameters.json"
 
     # Ensures postgres container is initiated and ready to accept restores
-    $pgWorkerPodName = "jumpstartps-0"
+    $pgControllerPodName = "jumpstartpsc0-0"
+    $pgWorkerPodName = "jumpstartpsw0-0"
 
     Do {
         Write-Output "Waiting for PostgreSQL. Hold tight, this might take a few minutes...(45s sleeping loop)"
         Start-Sleep -Seconds 45
-        $buildService = $(if((kubectl get pods -n arc | Select-String $pgWorkerPodName| Select-String "Running" -Quiet)){"Ready!"}Else{"Nope"})
+        $buildService = $(if ((kubectl get pods -n arc | Select-String $pgControllerPodName | Select-String "Running" -Quiet) -and (kubectl get pods -n arc | Select-String $pgWorkerPodName | Select-String "Running" -Quiet)) { "Ready!" }Else { "Nope" })
     } while ($buildService -eq "Nope")
 
     Write-Header "Azure Arc-enabled PostgreSQL is ready!"
     Start-Sleep -Seconds 60
 
+    # Update Service Port from 5432 to Non-Standard
+    $payload = '{\"spec\":{\"ports\":[{\"name\":\"port-pgsql\",\"port\":15432,\"targetPort\":5432}]}}'
+    kubectl patch svc jumpstartps-external-svc -n arc --type merge --patch $payload
+    Start-Sleep -Seconds 60
+
     # Downloading demo database and restoring onto Postgres
     Write-Header "Downloading AdventureWorks.sql template for Postgres... (1/3)"
-    kubectl exec $pgWorkerPodName  -n arc -c postgres -- /bin/bash -c "curl -o /tmp/AdventureWorks2019.sql 'https://jumpstart.blob.core.windows.net/jumpstartbaks/AdventureWorks2019.sql?sp=r&st=2021-09-08T21:04:16Z&se=2030-09-09T05:04:16Z&spr=https&sv=2020-08-04&sr=b&sig=MJHGMyjV5Dh5gqyvfuWRSsCb4IMNfjnkM%2B05F%2F3mBm8%3D'" 2>&1 | Out-Null
+    kubectl exec $pgControllerPodName -n arc -c postgres -- /bin/bash -c "curl -o /tmp/AdventureWorks2019.sql 'https://jumpstart.blob.core.windows.net/jumpstartbaks/AdventureWorks2019.sql?sp=r&st=2021-09-08T21:04:16Z&se=2030-09-09T05:04:16Z&spr=https&sv=2020-08-04&sr=b&sig=MJHGMyjV5Dh5gqyvfuWRSsCb4IMNfjnkM%2B05F%2F3mBm8%3D'" 2>&1 | Out-Null
     Write-Header "Creating AdventureWorks database on Postgres... (2/3)"
-    kubectl exec $pgWorkerPodName  -n arc -c postgres -- psql -U postgres -c 'CREATE DATABASE "adventureworks2019";' postgres 2>&1 | Out-Null
+    kubectl exec $pgControllerPodName -n arc -c postgres -- psql -U postgres -c 'CREATE DATABASE "adventureworks2019";' postgres 2>&1 | Out-Null
     Write-Header "Restoring AdventureWorks database on Postgres. (3/3)"
-    kubectl exec $pgWorkerPodName  -n arc -c postgres -- psql -U postgres -d adventureworks2019 -f /tmp/AdventureWorks2019.sql 2>&1 | Out-Null
+    kubectl exec $pgControllerPodName -n arc -c postgres -- psql -U postgres -d adventureworks2019 -f /tmp/AdventureWorks2019.sql 2>&1 | Out-Null
 
     # Creating Azure Data Studio settings for PostgreSQL connection
     Write-Header "Creating Azure Data Studio settings for PostgreSQL connection"
