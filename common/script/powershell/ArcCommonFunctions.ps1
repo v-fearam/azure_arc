@@ -70,17 +70,19 @@ function BoostrapArcData {
     # Downloading GitHub artifacts for DataServicesLogonScript.ps1
     Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/settingsTemplate.json") -OutFile "$Env:tempDir/settingsTemplate.json"
     Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/DataServicesLogonScript.ps1") -OutFile "$Env:tempDir/DataServicesLogonScript.ps1"
-    Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/DeploySQLMI.ps1") -OutFile "$Env:tempDir/DeploySQLMI.ps1"
     Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/dataController.json") -OutFile "$Env:tempDir/dataController.json"
     Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/dataController.parameters.json") -OutFile "$Env:tempDir/dataController.parameters.json"
     Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/SQLMI.json") -OutFile "$Env:tempDir/SQLMI.json"
     Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/SQLMI.parameters.json") -OutFile "$Env:tempDir/SQLMI.parameters.json"
-    Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/SQLMIEndpoints.ps1") -OutFile "$Env:tempDir/SQLMIEndpoints.ps1"
+
+    Invoke-WebRequest -Uri ($profileRootBaseUrl + "../common/script/powershell/DeploySQLMI.ps1") -OutFile "$Env:tempDir/DeploySQLMI.ps1"
+    Invoke-WebRequest -Uri ($profileRootBaseUrl + "../common/script/powershell/SQLMIEndpoints.ps1") -OutFile "$Env:tempDir/SQLMIEndpoints.ps1"
 
     if (-not $avoidPostgreSQL) {
         Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/postgreSQL.json") -OutFile "$Env:tempDir/postgreSQL.json"
         Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/postgreSQL.parameters.json") -OutFile "$Env:tempDir/postgreSQL.parameters.json"
-        Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/DeployPostgreSQL.ps1") -OutFile "$Env:tempDir/DeployPostgreSQL.ps1"
+
+        Invoke-WebRequest -Uri ($profileRootBaseUrl + "../common/script/powershell/DeployPostgreSQL.ps1") -OutFile "$Env:tempDir/DeployPostgreSQL.ps1"
     }
 
     Invoke-WebRequest -Uri ("https://github.com/ErikEJ/SqlQueryStress/releases/download/102/SqlQueryStress.zip") -OutFile "$Env:tempDir\SqlQueryStress.zip"
@@ -243,10 +245,10 @@ function DownloadCapiFiles {
 }
 function ChangingToClientVMWallpaper {
     param (
-        [string]$directory
+        [string]$folder
     )
 
-    $imgPath = "$directory\wallpaper.png"
+    $imgPath = "$folder\wallpaper.png"
     $code = @'
 using System.Runtime.InteropServices;
 namespace Win32{
@@ -323,7 +325,7 @@ function DeployAzureArcDataController {
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingUsernameAndPasswordParams", "")]
     param (
         [string]$resourceGroup,
-        [string]$directory,
+        [string]$folder,
         [string]$workspaceName,
         [string]$AZDATA_USERNAME,
         [string]$AZDATA_PASSWORD,
@@ -337,7 +339,7 @@ function DeployAzureArcDataController {
     $workspaceId = $(az resource show --resource-group $resourceGroup --name $workspaceName --resource-type "Microsoft.OperationalInsights/workspaces" --query properties.customerId -o tsv)
     $workspaceKey = $(az monitor log-analytics workspace get-shared-keys --resource-group $resourceGroup --workspace-name $workspaceName --query primarySharedKey -o tsv)
 
-    $dataControllerParams = "$directory\dataController.parameters.json"
+    $dataControllerParams = "$folder\dataController.parameters.json"
 
     (Get-Content -Path $dataControllerParams) -replace 'resourceGroup-stage', $resourceGroup | Set-Content -Path $dataControllerParams
     (Get-Content -Path $dataControllerParams) -replace 'azdataUsername-stage', $AZDATA_USERNAME | Set-Content -Path $dataControllerParams
@@ -351,8 +353,8 @@ function DeployAzureArcDataController {
     (Get-Content -Path $dataControllerParams) -replace 'logAnalyticsPrimaryKey-stage', $workspaceKey | Set-Content -Path $dataControllerParams
 
     az deployment group create --resource-group $resourceGroup `
-        --template-file "$directory\dataController.json" `
-        --parameters "$directory\dataController.parameters.json"
+        --template-file "$folder\dataController.json" `
+        --parameters "$folder\dataController.parameters.json"
 
     Write-Output "`n"
     Do {
