@@ -70,7 +70,7 @@ You can use the Azure portal, Azure CLI, an ARM template, PowerShell or Linux Sh
 
 - In order to demonstrate the custom script extension, we will use the below Linux and Windows scripts.
   - [*Linux*](https://github.com/microsoft/azure_arc/blob/main/azure_arc_servers_jumpstart/scripts/custom_script_linux.sh): The script will modify the message of the day (MOTD) on the operating system.
-  - [*Windows*](https://github.com/microsoft/azure_arc/blob/main/azure_arc_servers_jumpstart/scripts/custom_script_windows.ps1): The script will install Windows Terminal, Microsoft Edge, 7zip and Visual Studio Code [Chocolaty](https://chocolatey.org/) packages on the VM.
+  - [*Windows*](https://github.com/microsoft/azure_arc/blob/main/azure_arc_servers_jumpstart/scripts/custom_script_windows.ps1): The script will install Windows Terminal, Microsoft Edge, 7zip and Visual Studio Code [Chocolatey](https://chocolatey.org/) packages on the VM.
 
 ## Deployment Options and Automation Flow
 
