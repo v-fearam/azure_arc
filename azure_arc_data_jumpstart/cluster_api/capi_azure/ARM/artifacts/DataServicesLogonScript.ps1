@@ -1,6 +1,6 @@
 Start-Transcript -Path C:\Temp\DataServicesLogonScript.log
 
-InitializeArcDataCommonAtLogonScript 
+InitializeArcDataCommonAtLogonScript -spnClientId $Env:spnClientId -spnClientSecret $Env:spnClientSecret -spnTenantId $Env:spnTenantId -adminUsername $Env:adminUsername  -subscriptionId $Env:subscriptionId
 
 DownloadCapiFiles -stagingStorageAccountName "$Env:stagingStorageAccountName" -resourceGroup "$Env:resourceGroup" -username "$Env:USERNAME" -folder "$Env:TempDir"
 
