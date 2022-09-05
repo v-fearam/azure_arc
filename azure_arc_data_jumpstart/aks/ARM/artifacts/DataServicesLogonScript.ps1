@@ -14,7 +14,7 @@ Start-Sleep -Seconds 20
 AKSClusterAsAnAzureArcEnabledKubernetesCluster -connectedClusterName $connectedClusterName -resourceGroup $Env:resourceGroup -azureLocation $Env:azureLocation -workspaceName $Env:workspaceName -KUBECONTEXT $Env:KUBECONTEXT -KUBECONFIG $Env:KUBECONFIG
 
 # Monitor pods across arc namespace
-$kubectlMonShell = Start-Process -PassThru PowerShell {for (0 -lt 1) {kubectl get pod -n arc; Start-Sleep -Seconds 5; Clear-Host }}
+$kubectlMonShell = Start-Process -PassThru PowerShell { for (0 -lt 1) { kubectl get pod -n arc; Start-Sleep -Seconds 5; Clear-Host } }
 
 InstallAzureArcEnabledDataServicesExtension -resourceGroup $Env:resourceGroup -clusterName $connectedClusterName
 
@@ -23,21 +23,20 @@ CreateCustomLocation -resourceGroup $Env:resourceGroup -clusterName $connectedCl
 DeployAzureArcDataController -resourceGroup $Env:resourceGroup -folder $Env:TempDir -workspaceName $Env:workspaceName -AZDATA_USERNAME $Env:AZDATA_USERNAME -AZDATA_PASSWORD $Env:AZDATA_PASSWORD -spnClientId $Env:spnClientId -spnTenantId $Env:spnTenantId -spnClientSecret $Env:spnClientSecret -subscriptionId $Env:subscriptionId
 
 # If flag set, deploy SQL MI
-if ( $Env:deploySQLMI -eq $true -and $Env:enableADAuth -eq $false)
-{
-& "$Env:TempDir\DeploySQLMI.ps1"
+if ( $Env:deploySQLMI -eq $true -and $Env:enableADAuth -eq $false) {
+    . "$Env:TempDir\DeploySQLMI.ps1"
+    DeployAzureArcSQLManagedInstance -resourceGroup $Env:resourceGroup -folder $Env:TempDir -adminUsername $Env:adminUsername -azdataUsername $Env:AZDATA_USERNAME -azdataPassword $env:AZDATA_PASSWORD -subscriptionId $Env:subscriptionId -SQLMIHA $env:SQLMIHA -deployPostgreSQL $Env:deployPostgreSQL
 }
 
 # if ADDS domainname is passed as parameter, deploy SQLMI with AD auth support
-if ($Env:deploySQLMI -eq $true -and $Env:enableADAuth -eq $true)
-{
-& "$Env:TempDir\DeploySQLMIADAuth.ps1"
+if ($Env:deploySQLMI -eq $true -and $Env:enableADAuth -eq $true) {
+    & "$Env:TempDir\DeploySQLMIADAuth.ps1"
 }
 
 # If flag set, deploy PostgreSQL
-if ( $Env:deployPostgreSQL -eq $true )
-{
-& "$Env:TempDir\DeployPostgreSQL.ps1"
+if ( $Env:deployPostgreSQL -eq $true ) {
+    . "$Env:TempDir\DeployPostgreSQL.ps1"
+    DeployAzureArcPostgreSQL  -resourceGroup $Env:resourceGroup -folder $Env:TempDir -azdataPassword $env:AZDATA_PASSWORD -subscriptionId $Env:subscriptionId -deploySQLMI $env:deploySQLMI
 }
 
 EnablingDataControllerAutoMetrics -resourceGroup $Env:resourceGroup -workspaceName $Env:workspaceName
