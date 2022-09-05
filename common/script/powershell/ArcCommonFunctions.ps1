@@ -35,7 +35,8 @@ function BoostrapArcData {
         [string] $adminUsername,
         [string[]]$extraChocolateyAppList = @(),
         [switch] $avoidPostgreSQL,
-        [switch] $avoidScriptAtLogOn
+        [switch] $avoidScriptAtLogOn,
+        [string] $folder
     )
     
     $ErrorActionPreference = 'SilentlyContinue'
@@ -64,31 +65,31 @@ function BoostrapArcData {
     $chocolateyAppList = $extraChocolateyAppList + @("azure-cli", "az.powershell", "kubernetes-cli", "kubectx", "vcredist140", "microsoft-edge", "azcopy10", "vscode", "putty.install", "kubernetes-helm", "grep", "ssms", "dotnetcore-3.1-sdk", "git", "7zip")
     InstallChocolateyApp $chocolateyAppList
 
-    Invoke-WebRequest -Uri "https://azuredatastudio-update.azurewebsites.net/latest/win32-x64-archive/stable" -OutFile "$Env:tempDir\azuredatastudio.zip"
-    Invoke-WebRequest -Uri "https://aka.ms/azdata-msi" -OutFile "$Env:tempDir\AZDataCLI.msi"
+    Invoke-WebRequest -Uri "https://azuredatastudio-update.azurewebsites.net/latest/win32-x64-archive/stable" -OutFile "$folder\azuredatastudio.zip"
+    Invoke-WebRequest -Uri "https://aka.ms/azdata-msi" -OutFile "$folder\AZDataCLI.msi"
 
     # Downloading GitHub artifacts for DataServicesLogonScript.ps1
-    Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/settingsTemplate.json") -OutFile "$Env:tempDir/settingsTemplate.json"
-    Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/DataServicesLogonScript.ps1") -OutFile "$Env:tempDir/DataServicesLogonScript.ps1"
-    Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/dataController.json") -OutFile "$Env:tempDir/dataController.json"
-    Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/dataController.parameters.json") -OutFile "$Env:tempDir/dataController.parameters.json"
-    Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/SQLMI.json") -OutFile "$Env:tempDir/SQLMI.json"
-    Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/SQLMI.parameters.json") -OutFile "$Env:tempDir/SQLMI.parameters.json"
+    Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/settingsTemplate.json") -OutFile "$folder/settingsTemplate.json"
+    Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/DataServicesLogonScript.ps1") -OutFile "$folder/DataServicesLogonScript.ps1"
+    Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/dataController.json") -OutFile "$folder/dataController.json"
+    Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/dataController.parameters.json") -OutFile "$folder/dataController.parameters.json"
+    Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/SQLMI.json") -OutFile "$folder/SQLMI.json"
+    Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/SQLMI.parameters.json") -OutFile "$folder/SQLMI.parameters.json"
 
-    Invoke-WebRequest -Uri ($profileRootBaseUrl + "../common/script/powershell/DeploySQLMI.ps1") -OutFile "$Env:tempDir/DeploySQLMI.ps1"
-    Invoke-WebRequest -Uri ($profileRootBaseUrl + "../common/script/powershell/SQLMIEndpoints.ps1") -OutFile "$Env:tempDir/SQLMIEndpoints.ps1"
+    Invoke-WebRequest -Uri ($profileRootBaseUrl + "../common/script/powershell/DeploySQLMI.ps1") -OutFile "$folder/DeploySQLMI.ps1"
+    Invoke-WebRequest -Uri ($profileRootBaseUrl + "../common/script/powershell/SQLMIEndpoints.ps1") -OutFile "$folder/SQLMIEndpoints.ps1"
 
     if (-not $avoidPostgreSQL) {
-        Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/postgreSQL.json") -OutFile "$Env:tempDir/postgreSQL.json"
-        Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/postgreSQL.parameters.json") -OutFile "$Env:tempDir/postgreSQL.parameters.json"
+        Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/postgreSQL.json") -OutFile "$folder/postgreSQL.json"
+        Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/postgreSQL.parameters.json") -OutFile "$folder/postgreSQL.parameters.json"
 
-        Invoke-WebRequest -Uri ($profileRootBaseUrl + "../common/script/powershell/DeployPostgreSQL.ps1") -OutFile "$Env:tempDir/DeployPostgreSQL.ps1"
+        Invoke-WebRequest -Uri ($profileRootBaseUrl + "../common/script/powershell/DeployPostgreSQL.ps1") -OutFile "$folder/DeployPostgreSQL.ps1"
     }
 
-    Invoke-WebRequest -Uri ("https://github.com/ErikEJ/SqlQueryStress/releases/download/102/SqlQueryStress.zip") -OutFile "$Env:tempDir\SqlQueryStress.zip"
-    Invoke-WebRequest -Uri ($profileRootBaseUrl + "../img/arcbox_wallpaper.png") -OutFile "$Env:tempDir\wallpaper.png"
+    Invoke-WebRequest -Uri ("https://github.com/ErikEJ/SqlQueryStress/releases/download/102/SqlQueryStress.zip") -OutFile "$folder\SqlQueryStress.zip"
+    Invoke-WebRequest -Uri ($profileRootBaseUrl + "../img/arcbox_wallpaper.png") -OutFile "$folder\wallpaper.png"
 
-    Expand-Archive $Env:tempDir\azuredatastudio.zip -DestinationPath 'C:\Program Files\Azure Data Studio' -Force
+    Expand-Archive $folder\azuredatastudio.zip -DestinationPath 'C:\Program Files\Azure Data Studio' -Force
     Start-Process msiexec.exe -Wait -ArgumentList '/I C:\Temp\AZDataCLI.msi /quiet'
 
     New-Item -path alias:kubectl -value 'C:\ProgramData\chocolatey\lib\kubernetes-cli\tools\kubernetes\client\bin\kubectl.exe'
@@ -97,7 +98,7 @@ function BoostrapArcData {
     if (-not $avoidScriptAtLogOn) {
         # Creating scheduled task for DataServicesLogonScript.ps1
         $Trigger = New-ScheduledTaskTrigger -AtLogOn
-        $Action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument "$Env:tempDir\DataServicesLogonScript.ps1"
+        $Action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument "$folder\DataServicesLogonScript.ps1"
         Register-ScheduledTask -TaskName "DataServicesLogonScript" -Trigger $Trigger -User $adminUsername -Action $Action -RunLevel "Highest" -Force
 
         # Disabling Windows Server Manager Scheduled Task
@@ -182,18 +183,23 @@ function InitializeArcDataCommonAtLogonScript {
         [string[]] $extraAzExtensions = @(),
         [string[]] $azureDataStudioExtensions = @("microsoft.azcli", "microsoft.azuredatastudio-postgresql", "Microsoft.arc"),
         [string[]] $arcProviderList = @("Kubernetes", "KubernetesConfiguration", "ExtendedLocation", "AzureArcData"),
-        [switch] $notInstallK8extensions
+        [switch] $notInstallK8extensions,
+        [string]$spnClientId,
+        [string]$spnClientSecret,
+        [string]$spnTenantId,
+        [string]$adminUsername,
+        [string]$subscriptionId
     )
     # Main script
     Set-NetFirewallProfile -Profile Domain, Public, Private -Enabled False
 
     # Login as service principal
-    az login --service-principal --username $Env:spnClientId --password $Env:spnClientSecret --tenant $Env:spnTenantId
+    az login --service-principal --username $spnClientId --password $spnClientSecret --tenant $spnTenantId
 
     # Required for azcopy
-    $azurePassword = ConvertTo-SecureString $Env:spnClientSecret -AsPlainText -Force
-    $psCred = New-Object System.Management.Automation.PSCredential($Env:spnClientId , $azurePassword)
-    Connect-AzAccount -Credential $psCred -TenantId $Env:spnTenantId -ServicePrincipal
+    $azurePassword = ConvertTo-SecureString $spnClientSecret -AsPlainText -Force
+    $psCred = New-Object System.Management.Automation.PSCredential($spnClientId , $azurePassword)
+    Connect-AzAccount -Credential $psCred -TenantId $spnTenantId -ServicePrincipal
 
     # Making extension install dynamic
     az config set extension.use_dynamic_install=yes_without_prompt
@@ -211,11 +217,11 @@ function InitializeArcDataCommonAtLogonScript {
     # "subscriptionId" value comes from clientVM.json ARM template, based on which 
     # subscription user deployed ARM template to. This is needed in case Service 
     # Principal has access to multiple subscriptions, which can break the automation logic
-    az account set --subscription $Env:subscriptionId
+    az account set --subscription $subscriptionId
 
     InstallAzureDataStudioExtensions -azureDataStudioExtensions $azureDataStudioExtensions
 
-    AddDesktopShortcut -shortcutName "Azure Data Studio" -targetPath "C:\Program Files\Azure Data Studio\azuredatastudio.exe" -username $Env:adminUsername
+    AddDesktopShortcut -shortcutName "Azure Data Studio" -targetPath "C:\Program Files\Azure Data Studio\azuredatastudio.exe" -username $adminUsername
 
     RegisterAzureArcProviders -arcProviderList $arcProviderList
 }
@@ -332,10 +338,11 @@ function DeployAzureArcDataController {
         [string]$spnClientId,
         [string]$spnTenantId,
         [string]$spnClientSecret,
-        [string]$subscriptionId
+        [string]$subscriptionId,
+        [string]$jumpstartcl = 'jumpstart-cl'
     )
     Write-Header "Deploying Azure Arc Data Controller"
-    $customLocationId = $(az customlocation show --name "jumpstart-cl" --resource-group $resourceGroup --query id -o tsv)
+    $customLocationId = $(az customlocation show --name $jumpstartcl --resource-group $resourceGroup --query id -o tsv)
     $workspaceId = $(az resource show --resource-group $resourceGroup --name $workspaceName --resource-type "Microsoft.OperationalInsights/workspaces" --query properties.customerId -o tsv)
     $workspaceKey = $(az monitor log-analytics workspace get-shared-keys --resource-group $resourceGroup --workspace-name $workspaceName --query primarySharedKey -o tsv)
 
@@ -400,8 +407,8 @@ function InstallAzureArcEnabledDataServicesExtension {
     az k8s-extension create --name arc-data-services `
         --extension-type microsoft.arcdataservices `
         --cluster-type connectedClusters `
-        --cluster-name $Env:ArcK8sClusterName `
-        --resource-group $Env:resourceGroup `
+        --cluster-name $clusterName `
+        --resource-group $resourceGroup `
         --auto-upgrade false `
         --scope cluster `
         --release-namespace arc `
