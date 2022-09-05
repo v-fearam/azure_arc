@@ -789,11 +789,41 @@ function InstallAzureArcEnabledDataServicesExtension {
         --auto-upgrade false `
         --scope cluster `
         --release-namespace arc `
-        --config Microsoft.CustomLocation.ServiceAccount=sa-arc-bootstrapper `
+        --config Microsoft.CustomLocation.ServiceAccount=sa-arc-bootstrapper
 
     Do {
         Write-Output "Waiting for bootstrapper pod, hold tight...(20s sleeping loop)"
         Start-Sleep -Seconds 20
         $podStatus = $(if (kubectl get pods -n arc | Select-String "bootstrapper" | Select-String "Running" -Quiet) { "Ready!" }Else { "Nope" })
     } while ($podStatus -eq "Nope")
+}
+function GetAKSClusterCredentialsKubeconfigFile() {
+    param (
+        [string]$resourceGroup,
+        [string]$clusterName
+    )
+    Write-Header "Getting AKS cluster credentials for the $clusterName cluster"
+    az aks get-credentials --resource-group $resourceGroup --name $clusterName --admin
+    Write-Header "Checking kubernetes nodes"
+    kubectl get nodes
+}
+function AKSClusterAsAnAzureArcEnabledKubernetesCluster {
+    param (
+        [string]$connectedClusterName,
+        [string]$resourceGroup,
+        [string]$azureLocation,
+        [string]$workspaceName,
+        [string]$KUBECONFIG,
+        [string]$KUBECONTEXT
+    )
+
+    Write-Header "Create Kubernetes - Azure Arc Cluster"
+    az connectedk8s -h
+    az connectedk8s connect --name $connectedClusterName --resource-group $resourceGroup --location $azureLocation --tags 'Project=jumpstart_azure_arc_data_services' --kube-config $KUBECONFIG --kube-context $KUBECONTEXT
+
+    Start-Sleep -Seconds 10
+
+    Write-Header "Enabling Container Insights cluster extension"
+    $workspaceId = $(az resource show --resource-group $resourceGroup --name $workspaceName --resource-type "Microsoft.OperationalInsights/workspaces" --query properties.customerId -o tsv)
+    az k8s-extension create --name "azuremonitor-containers" --cluster-name $connectedClusterName --resource-group $resourceGroup --cluster-type connectedClusters --extension-type Microsoft.AzureMonitor.Containers --configuration-settings logAnalyticsWorkspaceResourceID=$workspaceId
 }
