@@ -2,14 +2,38 @@ function DeployAzureArcPostgreSQL {
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingPlainTextForPassword", "")]
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingUsernameAndPasswordParams", "")]
     param (
-        [string]$resourceGroup,
-        [string]$folder,
-        [string]$azdataPassword,
-        [string]$subscriptionId,
-        [string]$deploySQLMI,
-        [string]$controllerName = "jumpstart-dc",
-        [string]$customLocation = "jumpstart-cl"
+        [string]
+        # Resource group where the resource are being created
+        $resourceGroup,
+        [string]
+        # Folder where the config files are present
+        $folder,
+        [string]
+        # Az password needed for PostgreSQL configuration
+        $azdataPassword,
+        [string]
+        # Azure subscription id needed for PostgreSQL configuration
+        $subscriptionId,
+        [string]
+        # true if SQLMI was deployed
+        $deploySQLMI,
+        [string]
+        # Data controller name
+        $controllerName = "jumpstart-dc",
+        [string]
+        # Custom location name
+        $customLocation = "jumpstart-cl"
     )
+    <#
+        .DESCRIPTION
+        Deploy  Azure Arc PostgreSQL  
+        
+        .OUTPUTS
+        Azure Arc PostgreSQL on the k8s cluster
+
+        .EXAMPLE
+        > DeployAzureArcPostgreSQL  -resourceGroup $Env:resourceGroup -folder $Env:TempDir -azdataPassword $env:AZDATA_PASSWORD -subscriptionId $Env:subscriptionId -deploySQLMI $env:deploySQLMI
+    #>
     Write-Header "Deploying Azure Arc PostgreSQL"
    
     $customLocationId = $(az customlocation show --name $customLocation --resource-group $resourceGroup --query id -o tsv)
