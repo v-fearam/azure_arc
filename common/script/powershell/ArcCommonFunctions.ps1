@@ -799,9 +799,23 @@ function InstallAzureArcEnabledDataServicesExtension {
 }
 function GetAKSClusterCredentialsKubeconfigFile() {
     param (
-        [string]$resourceGroup,
-        [string]$clusterName
+        [string]
+        # Resource Group where AKS cluster is
+        $resourceGroup,
+        [string]
+        # AKS Cluster name
+        $clusterName
     )
+    <#
+        .DESCRIPTION
+        Get k8s config file to connect AKS
+        
+        .OUTPUTS
+        It is  possible to connect AKS and it is checked
+
+        .EXAMPLE
+        >  GetAKSClusterCredentialsKubeconfigFile -resourceGroup $Env:resourceGroup -clusterName $connectedClusterName
+    #>
     Write-Header "Getting AKS cluster credentials for the $clusterName cluster"
     az aks get-credentials --resource-group $resourceGroup --name $clusterName --admin
     Write-Header "Checking kubernetes nodes"
@@ -809,14 +823,35 @@ function GetAKSClusterCredentialsKubeconfigFile() {
 }
 function AKSClusterAsAnAzureArcEnabledKubernetesCluster {
     param (
-        [string]$connectedClusterName,
-        [string]$resourceGroup,
-        [string]$azureLocation,
-        [string]$workspaceName,
-        [string]$KUBECONFIG,
-        [string]$KUBECONTEXT
+        [string]
+        # AKS Cluster name
+        $connectedClusterName,
+        [string]
+        # Resource Group where AKS cluster is
+        $resourceGroup,
+        [string]
+        # Azure Location where the cluster is
+        $azureLocation,
+        [string]
+        # Workpace collecting metric from cluster
+        $workspaceName,
+        [string]
+        # AKS cluster config file
+        $KUBECONFIG,
+        [string]
+        # AKS clustet local context
+        $KUBECONTEXT
     )
+    <#
+        .DESCRIPTION
+        On board AKS as ARC Cluster and collect metrics
+        
+        .OUTPUTS
+        We can manage AKS cluster as an ARC Cluster
 
+        .EXAMPLE
+        >  AKSClusterAsAnAzureArcEnabledKubernetesCluster -connectedClusterName $connectedClusterName -resourceGroup $Env:resourceGroup -azureLocation $Env:azureLocation -workspaceName $Env:workspaceName -KUBECONTEXT $Env:KUBECONTEXT -KUBECONFIG $Env:KUBECONFIG
+    #>
     Write-Header "Create Kubernetes - Azure Arc Cluster"
     az connectedk8s -h
     az connectedk8s connect --name $connectedClusterName --resource-group $resourceGroup --location $azureLocation --tags 'Project=jumpstart_azure_arc_data_services' --kube-config $KUBECONFIG --kube-context $KUBECONTEXT

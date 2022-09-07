@@ -39,7 +39,7 @@ if ( $Env:deployPostgreSQL -eq $true ) {
     DeployAzureArcPostgreSQL  -resourceGroup $Env:resourceGroup -folder $Env:TempDir -azdataPassword $env:AZDATA_PASSWORD -subscriptionId $Env:subscriptionId -deploySQLMI $env:deploySQLMI
 }
 
-EnablingDataControllerAutoMetrics -resourceGroup $Env:resourceGroup -workspaceName $Env:workspaceName
+EnableDataControllerAutoMetrics -resourceGroup $Env:resourceGroup -workspaceName $Env:workspaceName
 
 ApplyAzureDataStudioSettingsTemplateFileAndOperationsUrlShortcut -adminUsername $Env:adminUsername -folder $Env:TempDir -userProfile $Env:USERPROFILE -deploySQLMI $Env:deploySQLMI -deployPostgreSQL $Env:deployPostgreSQL
 
