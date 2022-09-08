@@ -797,3 +797,44 @@ function InstallAzureArcEnabledDataServicesExtension {
         $podStatus = $(if (kubectl get pods -n arc | Select-String "bootstrapper" | Select-String "Running" -Quiet) { "Ready!" }Else { "Nope" })
     } while ($podStatus -eq "Nope")
 }
+function AKSClusterAsAnAzureArcEnabledKubernetesCluster {
+    param (
+        [string]$connectedClusterName,
+        [string]$resourceGroup,
+        [string]$azureLocation,
+        [string]$workspaceName,
+        [string]$KUBECONFIG,
+        [string]$KUBECONTEXT
+    )
+    <#
+        .SYNOPSIS
+        On board AKS as ARC Cluster and collect metrics
+        .DESCRIPTION
+        On board AKS as ARC Cluster and collect metrics
+        
+        .PARAMETER resourceGroup
+        Resource group where the cluster is located.
+        .PARAMETER connectedClusterName
+        Cluster name.
+        
+        .PARAMETER azureLocation
+        Azure Location where the cluster is.
+        .PARAMETER workspaceName
+        Workpace collecting metric from cluster.
+        .PARAMETER KUBECONFIG
+        AKS cluster config file.
+        .PARAMETER KUBECONTEXT
+        AKS cluster local context.
+        .EXAMPLE
+        >  AKSClusterAsAnAzureArcEnabledKubernetesCluster -connectedClusterName $connectedClusterName -resourceGroup $Env:resourceGroup -azureLocation $Env:azureLocation -workspaceName $Env:workspaceName -KUBECONTEXT $Env:KUBECONTEXT -KUBECONFIG $Env:KUBECONFIG
+    #>
+    Write-Header "Create Kubernetes - Azure Arc Cluster"
+    az connectedk8s -h
+    az connectedk8s connect --name $connectedClusterName --resource-group $resourceGroup --location $azureLocation --tags 'Project=jumpstart_azure_arc_data_services' --kube-config $KUBECONFIG --kube-context $KUBECONTEXT --correlation-id "d009f5dd-dba8-4ac7-bac9-b54ef3a6671a"
+
+    Start-Sleep -Seconds 10
+
+    Write-Header "Enabling Container Insights cluster extension"
+    $workspaceId = $(az resource show --resource-group $resourceGroup --name $workspaceName --resource-type "Microsoft.OperationalInsights/workspaces" --query properties.customerId -o tsv)
+    az k8s-extension create --name "azuremonitor-containers" --cluster-name $connectedClusterName --resource-group $resourceGroup --cluster-type connectedClusters --extension-type Microsoft.AzureMonitor.Containers --configuration-settings logAnalyticsWorkspaceResourceID=$workspaceId
+}
