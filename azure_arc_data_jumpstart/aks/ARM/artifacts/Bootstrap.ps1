@@ -23,28 +23,28 @@ param (
     [string]$profileRootBaseUrl
 )
 
-[System.Environment]::SetEnvironmentVariable('adminUsername', $adminUsername,[System.EnvironmentVariableTarget]::Machine)
-[System.Environment]::SetEnvironmentVariable('adminPassword', $adminPassword,[System.EnvironmentVariableTarget]::Machine)
-[System.Environment]::SetEnvironmentVariable('spnClientID', $spnClientId,[System.EnvironmentVariableTarget]::Machine)
-[System.Environment]::SetEnvironmentVariable('spnClientSecret', $spnClientSecret,[System.EnvironmentVariableTarget]::Machine)
-[System.Environment]::SetEnvironmentVariable('spnTenantId', $spnTenantId,[System.EnvironmentVariableTarget]::Machine)
-[System.Environment]::SetEnvironmentVariable('spnAuthority', $spnAuthority,[System.EnvironmentVariableTarget]::Machine)
-[System.Environment]::SetEnvironmentVariable('resourceGroup', $resourceGroup,[System.EnvironmentVariableTarget]::Machine)
-[System.Environment]::SetEnvironmentVariable('AZDATA_USERNAME', $azdataUsername,[System.EnvironmentVariableTarget]::Machine)
-[System.Environment]::SetEnvironmentVariable('AZDATA_PASSWORD', $azdataPassword,[System.EnvironmentVariableTarget]::Machine)
-[System.Environment]::SetEnvironmentVariable('ACCEPT_EULA', $acceptEula,[System.EnvironmentVariableTarget]::Machine)
-[System.Environment]::SetEnvironmentVariable('arcDcName', $arcDcName,[System.EnvironmentVariableTarget]::Machine)
-[System.Environment]::SetEnvironmentVariable('subscriptionId', $subscriptionId,[System.EnvironmentVariableTarget]::Machine)
-[System.Environment]::SetEnvironmentVariable('azureLocation', $azureLocation,[System.EnvironmentVariableTarget]::Machine)
-[System.Environment]::SetEnvironmentVariable('workspaceName', $workspaceName,[System.EnvironmentVariableTarget]::Machine)
-[System.Environment]::SetEnvironmentVariable('deploySQLMI', $deploySQLMI,[System.EnvironmentVariableTarget]::Machine)
-[System.Environment]::SetEnvironmentVariable('SQLMIHA', $SQLMIHA,[System.EnvironmentVariableTarget]::Machine)
-[System.Environment]::SetEnvironmentVariable('deployPostgreSQL', $deployPostgreSQL,[System.EnvironmentVariableTarget]::Machine)
-[System.Environment]::SetEnvironmentVariable('clusterName', $clusterName,[System.EnvironmentVariableTarget]::Machine)
-[System.Environment]::SetEnvironmentVariable('templateBaseUrl', $templateBaseUrl,[System.EnvironmentVariableTarget]::Machine)
-[System.Environment]::SetEnvironmentVariable('enableADAuth', $enableADAuth,[System.EnvironmentVariableTarget]::Machine)
-[System.Environment]::SetEnvironmentVariable('addsDomainName', $addsDomainName,[System.EnvironmentVariableTarget]::Machine)
-[System.Environment]::SetEnvironmentVariable('profileRootBaseUrl', $profileRootBaseUrl,[System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable('adminUsername', $adminUsername, [System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable('adminPassword', $adminPassword, [System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable('spnClientID', $spnClientId, [System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable('spnClientSecret', $spnClientSecret, [System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable('spnTenantId', $spnTenantId, [System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable('spnAuthority', $spnAuthority, [System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable('resourceGroup', $resourceGroup, [System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable('AZDATA_USERNAME', $azdataUsername, [System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable('AZDATA_PASSWORD', $azdataPassword, [System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable('ACCEPT_EULA', $acceptEula, [System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable('arcDcName', $arcDcName, [System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable('subscriptionId', $subscriptionId, [System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable('azureLocation', $azureLocation, [System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable('workspaceName', $workspaceName, [System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable('deploySQLMI', $deploySQLMI, [System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable('SQLMIHA', $SQLMIHA, [System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable('deployPostgreSQL', $deployPostgreSQL, [System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable('clusterName', $clusterName, [System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable('templateBaseUrl', $templateBaseUrl, [System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable('enableADAuth', $enableADAuth, [System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable('addsDomainName', $addsDomainName, [System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable('profileRootBaseUrl', $profileRootBaseUrl, [System.EnvironmentVariableTarget]::Machine)
 
 Start-Transcript "C:\Temp\Bootstrap.log"
 
@@ -58,6 +58,7 @@ Invoke-WebRequest ($templateBaseUrl + "artifacts/SQLMIADAuthCMK.yaml") -OutFile 
 Invoke-WebRequest ($templateBaseUrl + "artifacts/DeploySQLMIADAuth.ps1") -OutFile "$Env:tempDir\DeploySQLMIADAuth.ps1"
 Invoke-WebRequest ($templateBaseUrl + "artifacts/RunAfterClientVMADJoin.ps1") -OutFile "$Env:tempDir\RunAfterClientVMADJoin.ps1"
 
+$bootstrapLogFile = "$Env:tempDir\Bootstrap.log"
 
 ##############################################################################
 # Following code is support AD authentication in SQL MI. This code is executed
@@ -65,8 +66,7 @@ Invoke-WebRequest ($templateBaseUrl + "artifacts/RunAfterClientVMADJoin.ps1") -O
 # is supplied to this script setup ADDS domain.
 ##############################################################################
 # If AD Auth is required join computer to ADDS domain and restart computer
-if ($enableADAuth -eq $true -and $addsDomainName.Length -gt 0)
-{
+if ($enableADAuth -eq $true -and $addsDomainName.Length -gt 0) {
     BootstrapArcData -profileRootBaseUrl $profileRootBaseUrl -templateBaseUrl $templateBaseUrl -adminUsername $adminUsername -avoidScriptAtLogOn -folder $Env:tempDir
 
     # Install Windows Feature RSAT-AD-PowerShell windows feature to setup OU and User Accounts in ADDS
@@ -81,14 +81,14 @@ if ($enableADAuth -eq $true -and $addsDomainName.Length -gt 0)
     $computername = $env:COMPUTERNAME
 
     $domainCred = New-Object pscredential -ArgumentList ([pscustomobject]@{
-        UserName = "${netbiosname}\${adminUsername}"
-        Password = (ConvertTo-SecureString -String $adminPassword -AsPlainText -Force)[0]
-    })
+            UserName = "${netbiosname}\${adminUsername}"
+            Password = (ConvertTo-SecureString -String $adminPassword -AsPlainText -Force)[0]
+        })
     
     $localCred = New-Object pscredential -ArgumentList ([pscustomobject]@{
-        UserName = "${computername}\${adminUsername}"
-        Password = (ConvertTo-SecureString -String $adminPassword -AsPlainText -Force)[0]
-    })
+            UserName = "${computername}\${adminUsername}"
+            Password = (ConvertTo-SecureString -String $adminPassword -AsPlainText -Force)[0]
+        })
  
     # Register schedule task to run after system reboot
     # schedule task to run after reboot to create reverse DNS lookup
@@ -112,8 +112,7 @@ if ($enableADAuth -eq $true -and $addsDomainName.Length -gt 0)
     # Restart computer
     Restart-Computer
 }
-else
-{
+else {
     BootstrapArcData -profileRootBaseUrl $profileRootBaseUrl -templateBaseUrl $templateBaseUrl -adminUsername $adminUsername -folder $Env:tempDir
 
     # Clean up Bootstrap.log
