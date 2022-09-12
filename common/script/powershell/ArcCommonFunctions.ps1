@@ -637,6 +637,7 @@ function DeployAzureArcDataController {
         [string] $spnClientSecret,
         [string] $subscriptionId,
         [string] $jumpstartcl = 'jumpstart-cl'
+        [string] $jumpstartdc
     )
     <#
         .SYNOPSIS
@@ -683,8 +684,6 @@ function DeployAzureArcDataController {
     $workspaceId = $(az resource show --resource-group $resourceGroup --name $workspaceName --resource-type "Microsoft.OperationalInsights/workspaces" --query properties.customerId -o tsv)
     $workspaceKey = $(az monitor log-analytics workspace get-shared-keys --resource-group $resourceGroup --workspace-name $workspaceName --query primarySharedKey -o tsv)
 
-    $dataControllerParams = "$folder\dataController.parameters.json"
-
     (Get-Content -Path $dataControllerParams) -replace 'resourceGroup-stage', $resourceGroup | Set-Content -Path $dataControllerParams
     (Get-Content -Path $dataControllerParams) -replace 'azdataUsername-stage', $AZDATA_USERNAME | Set-Content -Path $dataControllerParams
     (Get-Content -Path $dataControllerParams) -replace 'azdataPassword-stage', $AZDATA_PASSWORD | Set-Content -Path $dataControllerParams
@@ -695,6 +694,9 @@ function DeployAzureArcDataController {
     (Get-Content -Path $dataControllerParams) -replace 'spnClientSecret-stage', $spnClientSecret | Set-Content -Path $dataControllerParams
     (Get-Content -Path $dataControllerParams) -replace 'logAnalyticsWorkspaceId-stage', $workspaceId | Set-Content -Path $dataControllerParams
     (Get-Content -Path $dataControllerParams) -replace 'logAnalyticsPrimaryKey-stage', $workspaceKey | Set-Content -Path $dataControllerParams
+    if($jumpstartdc){
+        (Get-Content -Path $dataControllerParams) -replace 'jumpstartdc-stage',$jumpstartdc | Set-Content -Path $dataControllerParams
+    }
 
     az deployment group create --resource-group $resourceGroup `
         --template-file "$folder\dataController.json" `
