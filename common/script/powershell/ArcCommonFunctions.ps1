@@ -66,7 +66,8 @@ function BootstrapArcData {
         [string[]] $extraChocolateyPackages = @(),
         [switch] $skipPostgreSQLInstall,
         [switch] $skipLogonScript,
-        [string] $folder
+        [string] $folder,
+        [switch] $LocalSQLMIFile
     )
     <#
         .SYNOPSIS
@@ -96,6 +97,9 @@ function BootstrapArcData {
 
         .PARAMETER folder
         Local folder where the downloaded scripts will be saved.
+
+        .PARAMETER LocalSQLMIFile
+        if we are expecting to use local SQLMI files instead of global ones.
         
         .EXAMPLE
         > BootstrapArcData -profileRootBaseUrl $profileRootBaseUrl -templateBaseUrl $templateBaseUrl -adminUsername $adminUsername -folder $Env:tempDir
@@ -138,8 +142,13 @@ function BootstrapArcData {
     Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/SQLMI.json") -OutFile "$folder/SQLMI.json"
     Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/SQLMI.parameters.json") -OutFile "$folder/SQLMI.parameters.json"
 
-    Invoke-WebRequest -Uri ($profileRootBaseUrl + "../common/script/powershell/DeploySQLMI.ps1") -OutFile "$folder/DeploySQLMI.ps1"
-    Invoke-WebRequest -Uri ($profileRootBaseUrl + "../common/script/powershell/SQLMIEndpoints.ps1") -OutFile "$folder/SQLMIEndpoints.ps1"
+    if ($LocalSQLMIFile){
+        Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/DeploySQLMI.ps1") -OutFile "$folder/DeploySQLMI.ps1"
+        Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/SQLMIEndpoints.ps1") -OutFile "$folder/SQLMIEndpoints.ps1"
+    }else{
+        Invoke-WebRequest -Uri ($profileRootBaseUrl + "../common/script/powershell/DeploySQLMI.ps1") -OutFile "$folder/DeploySQLMI.ps1"
+        Invoke-WebRequest -Uri ($profileRootBaseUrl + "../common/script/powershell/SQLMIEndpoints.ps1") -OutFile "$folder/SQLMIEndpoints.ps1"
+    }
 
     if (-not $skipPostgreSQLInstall) {
         Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/postgreSQL.json") -OutFile "$folder/postgreSQL.json"
@@ -636,7 +645,7 @@ function DeployAzureArcDataController {
         [string] $spnTenantId,
         [string] $spnClientSecret,
         [string] $subscriptionId,
-        [string] $jumpstartcl = 'jumpstart-cl'
+        [string] $jumpstartcl = 'jumpstart-cl',
         [string] $jumpstartdc
     )
     <#
@@ -674,6 +683,9 @@ function DeployAzureArcDataController {
         Subscription Id.
 
         .PARAMETER jumpstartcl
+        Custom location name.
+
+        .PARAMETER jumpstartdc
         Data controller name.
 
         .EXAMPLE
@@ -683,6 +695,7 @@ function DeployAzureArcDataController {
     $customLocationId = $(az customlocation show --name $jumpstartcl --resource-group $resourceGroup --query id -o tsv)
     $workspaceId = $(az resource show --resource-group $resourceGroup --name $workspaceName --resource-type "Microsoft.OperationalInsights/workspaces" --query properties.customerId -o tsv)
     $workspaceKey = $(az monitor log-analytics workspace get-shared-keys --resource-group $resourceGroup --workspace-name $workspaceName --query primarySharedKey -o tsv)
+    $dataControllerParams = "$folder\dataController.parameters.json"
 
     (Get-Content -Path $dataControllerParams) -replace 'resourceGroup-stage', $resourceGroup | Set-Content -Path $dataControllerParams
     (Get-Content -Path $dataControllerParams) -replace 'azdataUsername-stage', $AZDATA_USERNAME | Set-Content -Path $dataControllerParams

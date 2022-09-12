@@ -45,7 +45,7 @@ Invoke-WebRequest -Uri ($profileRootBaseUrl + "..\common\script\powershell\ArcCo
 Invoke-WebRequest -Uri ($profileRootBaseUrl + "..\common\script\powershell\ArcDataProfile.ps1") -OutFile $PsHome\Profile.ps1
 . $PsHome\Profile.ps1
 
-BoostrapArcData -profileRootBaseUrl $profileRootBaseUrl -templateBaseUrl $templateBaseUrl -adminUsername $adminUsername -avoidPostgreSQL -folder $Env:tempDir
+BootstrapArcData -profileRootBaseUrl $profileRootBaseUrl -templateBaseUrl $templateBaseUrl -adminUsername $adminUsername -avoidPostgreSQL -folder $Env:tempDir -LocalSQLMIFile
 
 # Clean up Bootstrap.log
 Stop-Transcript
