@@ -286,7 +286,7 @@ function InstallAzureDataStudioExtensions {
     $Env:argument1 = "--install-extension"
     foreach ($extension in $azureDataStudioExtensions) {
         Write-Output "Installing Arc Data Studio extension: $extension"
-            & "C:\Program Files\Azure Data Studio\bin\azuredatastudio.cmd" $Env:argument1 $extension
+        & "C:\Program Files\Azure Data Studio\bin\azuredatastudio.cmd" $Env:argument1 $extension
     }
 }
 
