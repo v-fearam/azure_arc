@@ -774,7 +774,7 @@ function InstallAzureArcEnabledDataServicesExtension {
         .PARAMETER resourceGroup
         Resource group where the cluster is located.
 
-        .PARAMETER resourceGroup
+        .PARAMETER clusterName
         Cluster name.
         
         .EXAMPLE
@@ -799,19 +799,21 @@ function InstallAzureArcEnabledDataServicesExtension {
 }
 function GetAKSClusterCredentialsKubeconfigFile() {
     param (
-        [string]
-        # Resource Group where AKS cluster is
-        $resourceGroup,
-        [string]
-        # AKS Cluster name
-        $clusterName
+        [string]$resourceGroup,
+        [string]$clusterName
     )
     <#
+        .SYNOPSIS
+        Get k8s config file to connect AKS
+        
         .DESCRIPTION
         Get k8s config file to connect AKS
         
-        .OUTPUTS
-        It is  possible to connect AKS and it is checked
+        .PARAMETER resourceGroup
+        Resource group where the cluster is located.
+
+        .PARAMETER clusterName
+        Cluster name.
 
         .EXAMPLE
         >  GetAKSClusterCredentialsKubeconfigFile -resourceGroup $Env:resourceGroup -clusterName $connectedClusterName
@@ -823,31 +825,37 @@ function GetAKSClusterCredentialsKubeconfigFile() {
 }
 function AKSClusterAsAnAzureArcEnabledKubernetesCluster {
     param (
-        [string]
-        # AKS Cluster name
-        $connectedClusterName,
-        [string]
-        # Resource Group where AKS cluster is
-        $resourceGroup,
-        [string]
-        # Azure Location where the cluster is
-        $azureLocation,
-        [string]
-        # Workpace collecting metric from cluster
-        $workspaceName,
-        [string]
-        # AKS cluster config file
-        $KUBECONFIG,
-        [string]
-        # AKS clustet local context
-        $KUBECONTEXT
+        [string]$connectedClusterName,
+        [string]$resourceGroup,
+        [string]$azureLocation,
+        [string]$workspaceName,
+        [string]$KUBECONFIG,
+        [string]$KUBECONTEXT
     )
     <#
+        .SYNOPSIS
+        On board AKS as ARC Cluster and collect metrics
+
         .DESCRIPTION
         On board AKS as ARC Cluster and collect metrics
         
-        .OUTPUTS
-        We can manage AKS cluster as an ARC Cluster
+        .PARAMETER resourceGroup
+        Resource group where the cluster is located.
+
+        .PARAMETER connectedClusterName
+        Cluster name.
+        
+        .PARAMETER azureLocation
+        Azure Location where the cluster is.
+
+        .PARAMETER workspaceName
+        Workpace collecting metric from cluster.
+
+        .PARAMETER KUBECONFIG
+        AKS cluster config file.
+
+        .PARAMETER KUBECONTEXT
+        AKS cluster local context.
 
         .EXAMPLE
         >  AKSClusterAsAnAzureArcEnabledKubernetesCluster -connectedClusterName $connectedClusterName -resourceGroup $Env:resourceGroup -azureLocation $Env:azureLocation -workspaceName $Env:workspaceName -KUBECONTEXT $Env:KUBECONTEXT -KUBECONFIG $Env:KUBECONFIG
