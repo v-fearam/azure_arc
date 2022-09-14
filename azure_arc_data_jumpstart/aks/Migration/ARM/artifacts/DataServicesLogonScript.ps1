@@ -15,17 +15,17 @@ Start-Sleep -Seconds 10
 
 # Install and configure DHCP service (used by Hyper-V nested VMs)
 Write-Header "Configuring DHCP Service"
-$dnsClient = Get-DnsClient | Where-Object {$_.InterfaceAlias -eq "Ethernet" }
+$dnsClient = Get-DnsClient | Where-Object { $_.InterfaceAlias -eq "Ethernet" }
 Add-DhcpServerv4Scope -Name "ArcBox" `
-                      -StartRange 10.10.1.100 `
-                      -EndRange 10.10.1.200 `
-                      -SubnetMask 255.255.255.0 `
-                      -LeaseDuration 1.00:00:00 `
-                      -State Active
+    -StartRange 10.10.1.100 `
+    -EndRange 10.10.1.200 `
+    -SubnetMask 255.255.255.0 `
+    -LeaseDuration 1.00:00:00 `
+    -State Active
 Set-DhcpServerv4OptionValue -ComputerName localhost `
-                            -DnsDomain $dnsClient.ConnectionSpecificSuffix `
-                            -DnsServer 168.63.129.16 `
-                            -Router 10.10.1.1
+    -DnsDomain $dnsClient.ConnectionSpecificSuffix `
+    -DnsServer 168.63.129.16 `
+    -Router 10.10.1.1
 Restart-Service dhcpserver
 
 # Create the NAT network
@@ -37,7 +37,7 @@ New-NetNat -Name $natName -InternalIPInterfaceAddressPrefix 10.10.1.0/24
 Write-Header "Creating Internal vSwitch"
 $switchName = 'InternalNATSwitch'
 New-VMSwitch -Name $switchName -SwitchType Internal
-$adapter = Get-NetAdapter | Where-Object { $_.Name -like "*"+$switchName+"*" }
+$adapter = Get-NetAdapter | Where-Object { $_.Name -like "*" + $switchName + "*" }
 
 # Create an internal network (gateway first)
 Write-Header "Creating Gateway"
@@ -50,7 +50,7 @@ Set-VMHost -EnableEnhancedSessionMode $true
 Write-Header "Fetching Nested VMs"
 $sourceFolder = 'https://jumpstart.blob.core.windows.net/v2images'
 $sas = "?sp=rl&st=2022-01-27T01:47:01Z&se=2025-01-27T09:47:01Z&spr=https&sv=2020-08-04&sr=c&sig=NB8g7f4JT3IM%2FL6bUfjFdmnGIqcc8WU015socFtkLYc%3D"
-$Env:AZCOPY_BUFFER_GB=4
+$Env:AZCOPY_BUFFER_GB = 4
 Write-Output "Downloading nested VMs VHDX file for SQL. This can take some time, hold tight..."
 azcopy cp "$sourceFolder/ArcBox-SQL.vhdx$sas" "$Env:ArcBoxVMDir\ArcBox-SQL.vhdx" --check-length=false --cap-mbps 1200 --log-level=ERROR
 
@@ -65,7 +65,7 @@ Write-Header "Set VM Auto Start/Stop"
 Set-VM -Name ArcBox-SQL -AutomaticStartAction Start -AutomaticStopAction ShutDown
 
 Write-Header "Enabling Guest Integration Service"
-Get-VM | Get-VMIntegrationService | Where-Object {-not($_.Enabled)} | Enable-VMIntegrationService -Verbose
+Get-VM | Get-VMIntegrationService | Where-Object { -not($_.Enabled) } | Enable-VMIntegrationService -Verbose
 
 # Start all the VMs
 Write-Header "Starting SQL VM"
@@ -89,7 +89,7 @@ Start-Sleep -Seconds 5
 
 # Configuring the local SQL VM
 Write-Header "Setting local SQL authentication and adding a SQL login"
-$localSQLUser= $Env:AZDATA_USERNAME
+$localSQLUser = $Env:AZDATA_USERNAME
 $localSQLPassword = $Env:AZDATA_PASSWORD
 Invoke-Command -VMName ArcBox-SQL -Credential $winCreds -ScriptBlock {
     Install-Module -Name SqlServer -AllowClobber -Force
@@ -103,9 +103,9 @@ Invoke-Command -VMName ArcBox-SQL -Credential $winCreds -ScriptBlock {
     $svr.Settings.LoginMode = [Microsoft.SqlServer.Management.SMO.ServerLoginMode]::Mixed
     $svr.Alter()
     Restart-Service -Force MSSQLSERVER
-    $svrole = $svr.Roles | where {$_.Name -eq 'sysadmin'}
+    $svrole = $svr.Roles | where { $_.Name -eq 'sysadmin' }
     $svrole.AddMember($user)
-    }
+}
 
 # Creating Hyper-V Manager desktop shortcut
 Write-Header "Creating Hyper-V Shortcut"
@@ -114,7 +114,7 @@ Copy-Item -Path "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Administra
 AKSClusterAsAnAzureArcEnabledKubernetesCluster -connectedClusterName $connectedClusterName -resourceGroup $Env:resourceGroup -azureLocation $Env:azureLocation -workspaceName $Env:workspaceName -KUBECONTEXT $Env:KUBECONTEXT -KUBECONFIG $Env:KUBECONFIG
 
 # Monitor pods across arc namespace
-$kubectlMonShell = Start-Process -PassThru PowerShell {for (0 -lt 1) {kubectl get pod -n arc; Start-Sleep -Seconds 5; Clear-Host }}
+$kubectlMonShell = Start-Process -PassThru PowerShell { for (0 -lt 1) { kubectl get pod -n arc; Start-Sleep -Seconds 5; Clear-Host } }
 
 InstallAzureArcEnabledDataServicesExtension -resourceGroup $Env:resourceGroup -clusterName $connectedClusterName
 
@@ -123,9 +123,12 @@ CreateCustomLocation -resourceGroup $Env:resourceGroup -clusterName $connectedCl
 DeployAzureArcDataController -resourceGroup $Env:resourceGroup -folder $Env:TempDir -workspaceName $Env:workspaceName -AZDATA_USERNAME $Env:AZDATA_USERNAME -AZDATA_PASSWORD $Env:AZDATA_PASSWORD -spnClientId $Env:spnClientId -spnTenantId $Env:spnTenantId -spnClientSecret $Env:spnClientSecret -subscriptionId $Env:subscriptionId
 
 # If flag set, deploy SQL MI
-if ( $Env:deploySQLMI -eq $true )
-{
-& "$Env:TempDir\DeploySQLMI.ps1"
+if ( $Env:deploySQLMI -eq $true ) {
+    . "$Env:TempDir\DeploySQLMI.ps1"
+    DeployAzureArcSQLManagedInstance -resourceGroup $Env:resourceGroup -folder $Env:TempDir -adminUsername $Env:adminUsername -azdataUsername $Env:AZDATA_USERNAME -azdataPassword $env:AZDATA_PASSWORD -subscriptionId $Env:subscriptionId -SQLMIHA $env:SQLMIHA
+    $settingsTemplate = "$Env:TempDir\settingsTemplate.json"
+    $SQLVmIp = Get-VM -Name ArcBox-SQL | Select-Object -ExpandProperty NetworkAdapters | Select-Object -ExpandProperty IPAddresses | Select-Object -Index 0
+    (Get-Content -Path $settingsTemplate) -replace 'sql_srv', $SQLVmIp | Set-Content -Path $settingsTemplate
 }
 
 EnableDataControllerAutoMetrics -resourceGroup $Env:resourceGroup -workspaceName $Env:workspaceName
