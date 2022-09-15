@@ -1,7 +1,8 @@
 
 function Write-Header {
     param (
-        [string] $title
+        [Parameter(Mandatory = $true)]
+        [string] $Title
     )
     <#
         .SYNOPSIS
@@ -10,7 +11,7 @@ function Write-Header {
         .DESCRIPTION
         Write the title passed as a parameter as a formatted header to the standard output. Use this function to separate sections of log entries during execution.
 
-        .PARAMETER title
+        .PARAMETER Title
         Text to write.
 
         .EXAMPLE
@@ -21,15 +22,16 @@ function Write-Header {
         ####################
     #>
     Write-Host
-    Write-Host ("#" * ($title.Length + 8))
-    Write-Host "# - $title"
-    Write-Host ("#" * ($title.Length + 8))
+    Write-Host ("#" * ($Title.Length + 8))
+    Write-Host "# - $Title"
+    Write-Host ("#" * ($Title.Length + 8))
     Write-Host
 }
 
 function InstallChocolateyPackages {
     param(
-        [string[]] $packages
+        [Parameter(Mandatory = $true)]
+        [string[]] $Package
     )
     <#
         .SYNOPSIS
@@ -38,11 +40,11 @@ function InstallChocolateyPackages {
         .DESCRIPTION
         Download and install Chocolatey packages. If Chocolatey is not present, it will be installed. 
 
-        .PARAMETER packages
+        .PARAMETER Package
         List of packages to install, separated by comma.
 
         .EXAMPLE
-        > InstallChocolateyPackages -packages  @("azure-cli", "az.powershell")
+        > InstallChocolateyPackages -Package  @("azure-cli", "az.powershell")
     #>
     try {
         choco config get cacheLocation
@@ -52,21 +54,25 @@ function InstallChocolateyPackages {
         Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
     }
 
-    foreach ($package in $packages) {
-        Write-Output "Installing $package"
-        & choco install $package /y -Force | Write-Output
+    foreach ($item in $Package) {
+        Write-Output "Installing $item"
+        & choco install $item /y -Force | Write-Output
     }
 }
 
 function BootstrapArcData {
     param (
-        [string] $profileRootBaseUrl,
-        [string] $templateBaseUrl,
-        [string] $adminUsername,
-        [string[]] $extraChocolateyPackages = @(),
-        [switch] $skipPostgreSQLInstall,
-        [switch] $skipLogonScript,
-        [string] $folder
+        [Parameter(Mandatory = $true)]
+        [string] $ProfileRootBaseUrl,
+        [Parameter(Mandatory = $true)]
+        [string] $TemplateBaseUrl,
+        [Parameter(Mandatory = $true)]
+        [string] $AdminUsername,
+        [string[]] $ExtraChocolateyPackage = @(),
+        [switch] $SkipPostgreSQLInstall,
+        [switch] $SkipLogonScript,
+        [Parameter(Mandatory = $true)]
+        [string] $Folder
     )
     <#
         .SYNOPSIS
@@ -76,29 +82,29 @@ function BootstrapArcData {
         Common bootstrap installation functionality for Arc Data scenarios. Installs required Chocolatey packages and downloads the scenario scripts. Invokes 
         several scripts in-line and schedules task to invoke scripts that must run at log-on.
 
-        .PARAMETER profileRootBaseUrl
+        .PARAMETER ProfileRootBaseUrl
         Url to the root folder of the category of scenarios on GitHub. For example, the Arc-Data root folder. 
 
-        .PARAMETER templateBaseUrl
+        .PARAMETER TemplateBaseUrl
         Url to the root folder of the scenario on GitHub. For example, the capi scenario inside Arc-Data.
 
-        .PARAMETER adminUsername
+        .PARAMETER AdminUsername
         Admin user name for the client VM.
 
-        .PARAMETER extraChocolateyPackages
+        .PARAMETER ExtraChocolateyPackage
         Chocolatey packages to install, in addition to the common packages required by all Arc-Data scenarios.
 
-        .PARAMETER skipPostgreSQLInstall
+        .PARAMETER SkipPostgreSQLInstall
         By default this function downloads the files to install ProstgreSQL as required by most scenarios. Add this parameter to skip installation.
 
-        .PARAMETER skipLogonScript
+        .PARAMETER SkipLogonScript
         By default, this function schedules a DataService script to execute during the next log-on. Add this parameter to avoid that functionality.
 
-        .PARAMETER folder
+        .PARAMETER Folder
         Local folder where the downloaded scripts will be saved.
         
         .EXAMPLE
-        > BootstrapArcData -profileRootBaseUrl $profileRootBaseUrl -templateBaseUrl $templateBaseUrl -adminUsername $adminUsername -folder $Env:tempDir
+        > BootstrapArcData -ProfileRootBaseUrl $profileRootBaseUrl -TemplateBaseUrl $templateBaseUrl -AdminUsername $adminUsername -Folder $Env:tempDir
 
     #>
     $ErrorActionPreference = 'SilentlyContinue'
@@ -124,44 +130,44 @@ function BootstrapArcData {
 
     # Installing tools
     Write-Header "Installing Chocolatey Packages"
-    $chocolateyPackages = $extraChocolateyPackages + @("azure-cli", "az.powershell", "kubernetes-cli", "kubectx", "vcredist140", "microsoft-edge", "azcopy10", "vscode", "putty.install", "kubernetes-helm", "grep", "ssms", "dotnetcore-3.1-sdk", "git", "7zip")
-    InstallChocolateyPackages -packages $chocolateyPackages
+    $chocolateyPackages = $ExtraChocolateyPackage + @("azure-cli", "az.powershell", "kubernetes-cli", "kubectx", "vcredist140", "microsoft-edge", "azcopy10", "vscode", "putty.install", "kubernetes-helm", "grep", "ssms", "dotnetcore-3.1-sdk", "git", "7zip")
+    InstallChocolateyPackages -Package $chocolateyPackages
 
-    Invoke-WebRequest -Uri "https://azuredatastudio-update.azurewebsites.net/latest/win32-x64-archive/stable" -OutFile "$folder\azuredatastudio.zip"
-    Invoke-WebRequest -Uri "https://aka.ms/azdata-msi" -OutFile "$folder\AZDataCLI.msi"
+    Invoke-WebRequest -Uri "https://azuredatastudio-update.azurewebsites.net/latest/win32-x64-archive/stable" -OutFile "$Folder\azuredatastudio.zip"
+    Invoke-WebRequest -Uri "https://aka.ms/azdata-msi" -OutFile "$Folder\AZDataCLI.msi"
 
     # Downloading GitHub artifacts for DataServicesLogonScript.ps1
-    Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/settingsTemplate.json") -OutFile "$folder/settingsTemplate.json"
-    Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/DataServicesLogonScript.ps1") -OutFile "$folder/DataServicesLogonScript.ps1"
-    Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/dataController.json") -OutFile "$folder/dataController.json"
-    Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/dataController.parameters.json") -OutFile "$folder/dataController.parameters.json"
-    Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/SQLMI.json") -OutFile "$folder/SQLMI.json"
-    Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/SQLMI.parameters.json") -OutFile "$folder/SQLMI.parameters.json"
+    Invoke-WebRequest -Uri ($TemplateBaseUrl + "artifacts/settingsTemplate.json") -OutFile "$Folder/settingsTemplate.json"
+    Invoke-WebRequest -Uri ($TemplateBaseUrl + "artifacts/DataServicesLogonScript.ps1") -OutFile "$Folder/DataServicesLogonScript.ps1"
+    Invoke-WebRequest -Uri ($TemplateBaseUrl + "artifacts/dataController.json") -OutFile "$Folder/dataController.json"
+    Invoke-WebRequest -Uri ($TemplateBaseUrl + "artifacts/dataController.parameters.json") -OutFile "$Folder/dataController.parameters.json"
+    Invoke-WebRequest -Uri ($TemplateBaseUrl + "artifacts/SQLMI.json") -OutFile "$Folder/SQLMI.json"
+    Invoke-WebRequest -Uri ($TemplateBaseUrl + "artifacts/SQLMI.parameters.json") -OutFile "$Folder/SQLMI.parameters.json"
 
-    Invoke-WebRequest -Uri ($profileRootBaseUrl + "../common/script/powershell/DeploySQLMI.ps1") -OutFile "$folder/DeploySQLMI.ps1"
-    Invoke-WebRequest -Uri ($profileRootBaseUrl + "../common/script/powershell/SQLMIEndpoints.ps1") -OutFile "$folder/SQLMIEndpoints.ps1"
+    Invoke-WebRequest -Uri ($ProfileRootBaseUrl + "../common/script/powershell/DeploySQLMI.ps1") -OutFile "$Folder/DeploySQLMI.ps1"
+    Invoke-WebRequest -Uri ($ProfileRootBaseUrl + "../common/script/powershell/SQLMIEndpoints.ps1") -OutFile "$Folder/SQLMIEndpoints.ps1"
 
-    if (-not $skipPostgreSQLInstall) {
-        Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/postgreSQL.json") -OutFile "$folder/postgreSQL.json"
-        Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/postgreSQL.parameters.json") -OutFile "$folder/postgreSQL.parameters.json"
+    if (-not $SkipPostgreSQLInstall) {
+        Invoke-WebRequest -Uri ($TemplateBaseUrl + "artifacts/postgreSQL.json") -OutFile "$Folder/postgreSQL.json"
+        Invoke-WebRequest -Uri ($TemplateBaseUrl + "artifacts/postgreSQL.parameters.json") -OutFile "$Folder/postgreSQL.parameters.json"
 
-        Invoke-WebRequest -Uri ($profileRootBaseUrl + "../common/script/powershell/DeployPostgreSQL.ps1") -OutFile "$folder/DeployPostgreSQL.ps1"
+        Invoke-WebRequest -Uri ($ProfileRootBaseUrl + "../common/script/powershell/DeployPostgreSQL.ps1") -OutFile "$Folder/DeployPostgreSQL.ps1"
     }
 
-    Invoke-WebRequest -Uri ("https://github.com/ErikEJ/SqlQueryStress/releases/download/102/SqlQueryStress.zip") -OutFile "$folder\SqlQueryStress.zip"
-    Invoke-WebRequest -Uri ($profileRootBaseUrl + "../img/arcbox_wallpaper.png") -OutFile "$folder\wallpaper.png"
+    Invoke-WebRequest -Uri ("https://github.com/ErikEJ/SqlQueryStress/releases/download/102/SqlQueryStress.zip") -OutFile "$Folder\SqlQueryStress.zip"
+    Invoke-WebRequest -Uri ($ProfileRootBaseUrl + "../img/arcbox_wallpaper.png") -OutFile "$Folder\wallpaper.png"
 
-    Expand-Archive $folder\azuredatastudio.zip -DestinationPath 'C:\Program Files\Azure Data Studio' -Force
+    Expand-Archive $Folder\azuredatastudio.zip -DestinationPath 'C:\Program Files\Azure Data Studio' -Force
     Start-Process msiexec.exe -Wait -ArgumentList '/I C:\Temp\AZDataCLI.msi /quiet'
 
     New-Item -path alias:kubectl -value 'C:\ProgramData\chocolatey\lib\kubernetes-cli\tools\kubernetes\client\bin\kubectl.exe'
     New-Item -path alias:azdata -value 'C:\Program Files (x86)\Microsoft SDKs\Azdata\CLI\wbin\azdata.cmd'
 
-    if (-not $skipLogonScript) {
+    if (-not $SkipLogonScript) {
         # Schedule a task for DataServicesLogonScript.ps1
         $Trigger = New-ScheduledTaskTrigger -AtLogOn
-        $Action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument "$folder\DataServicesLogonScript.ps1"
-        Register-ScheduledTask -TaskName "DataServicesLogonScript" -Trigger $Trigger -User $adminUsername -Action $Action -RunLevel "Highest" -Force
+        $Action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument "$Folder\DataServicesLogonScript.ps1"
+        Register-ScheduledTask -TaskName "DataServicesLogonScript" -Trigger $Trigger -User $AdminUsername -Action $Action -RunLevel "Highest" -Force
 
         # Disable Windows Server Manager Scheduled Task
         Get-ScheduledTask -TaskName ServerManager | Disable-ScheduledTask
@@ -170,12 +176,15 @@ function BootstrapArcData {
 
 function AddDesktopShortcut {
     param(
-        [string] $icon,
-        [string] $shortcutName,
-        [string] $targetPath,
-        [string] $arguments,
-        [string] $windowStyle = 3,
-        [string] $username
+        [string] $Icon,
+        [Parameter(Mandatory = $true)]
+        [string] $ShortcutName,
+        [Parameter(Mandatory = $true)]
+        [string] $TargetPath,
+        [string] $Arguments,
+        [string] $WindowStyle = 3,
+        [string] $Username,
+        [switch] $UrlMode
     )
     <#
         .SYNOPSIS
@@ -184,55 +193,64 @@ function AddDesktopShortcut {
         .DESCRIPTION
         Create a Desktop Shortcut. If a user name is provided, the shortcut is installed under that user's profile, otherwise the Shortcut is installed for all users.
         
-        .PARAMETER icon
+        .PARAMETER Icon
         Path to the icon to use. This parameter is optional.
 
-        .PARAMETER shortcutName
+        .PARAMETER ShortcutName
         Name of the Shortcut.
 
-        .PARAMETER targetPath
+        .PARAMETER TargetPath
         Path to the executable to invoke when the Shortcut is clicked.
 
-        .PARAMETER arguments
+        .PARAMETER Arguments
         Parameters to pass along to the executable when the icon is clicked. This parameter is optional.
 
-        .PARAMETER windowStyle
+        .PARAMETER WindowStyle
         If WindowStyle is 1, the application window will be set to its default location and size. With a value of 3, the application will be launched in a 
         maximized window. With a value of 7, it will be launched in a minimized window.
 
-        .PARAMETER username
+        .PARAMETER Username
         User name if we want the icon to appear only on that user's desktop. If not specified, the icon will be added on the public desktop.
 
+        .PARAMETER UrlMode
+        If the shortcut should be included as URL 
+
         .EXAMPLE
-        > AddDesktopShortcut -shortcutName "Azure Data Studio" -targetPath "C:\Program Files\Azure Data Studio\azuredatastudio.exe" -username $adminUsername
+        > AddDesktopShortcut -ShortcutName "Azure Data Studio" -TargetPath "C:\Program Files\Azure Data Studio\azuredatastudio.exe" -Username $adminUsername
     #>
     
-    Write-Header "Creating $shortcutName Desktop shortcut"
-    if ( -not $username) {
-        $shortcutLocation = "$Env:Public\Desktop\$shortcutName.lnk"
+    Write-Header "Creating $ShortcutName Desktop shortcut"
+    If($UrlMode){
+        $extension="url"
+    }else{
+        $extension="lnk"
+    }
+
+    if ( -not $Username) {
+        $shortcutLocation = "$Env:Public\Desktop\$ShortcutName.$extension"
     }
     else {
-        $shortcutLocation = "C:\Users\$username\Desktop\$shortcutName.lnk"
+        $shortcutLocation = "C:\Users\$Username\Desktop\$ShortcutName.$extension"
     }
 
     $wScriptShell = New-Object -ComObject WScript.Shell
-    $shortcut = $wScriptShell.CreateShortcut($shortcutLocation)
-    $shortcut.TargetPath = $targetPath
-    if ($arguments) {
-        $shortcut.Arguments = $arguments
+    $shortcut = $wScriptShell.CreateShortcut($ShortcutLocation)
+    $shortcut.TargetPath = $TargetPath
+    if ($Arguments) {
+        $shortcut.Arguments = $Arguments
     }
 
-    if ($icon) {
-        $shortcut.IconLocation = "${Env:ArcBoxIconDir}\$icon.ico, 0"
+    if ($Icon) {
+        $shortcut.IconLocation = "${Env:ArcBoxIconDir}\$Icon.ico, 0"
     }
-    $shortcut.WindowStyle = $windowStyle
+    $shortcut.WindowStyle = $WindowStyle
     $shortcut.Save()
 }
 
 function InstallAzureArcDataAzureCliExtensions {
     param (
-        [string[]] $extraAzExtensions = @(),
-        [switch] $skipInstallK8extensions
+        [string[]] $ExtraAzExtension = @(),
+        [switch] $SkipInstallK8extension
     )
     <#
         .SYNOPSIS
@@ -241,24 +259,24 @@ function InstallAzureArcDataAzureCliExtensions {
         .DESCRIPTION
         Install Azure CLI extensions needed for Arc-Data scenarios. If a list of extra extensions is provided, they will also be installed. 
 
-        .PARAMETER extraAzExtensions
+        .PARAMETER ExtraAzExtension
         Array of extra extensions to install. 
 
-        .PARAMETER skipInstallK8extensions
+        .PARAMETER SkipInstallK8extension
         By default this function installs k8s extensions as they are needed by most scenarios. Add this parameter to exclude K8s extensions.
 
         .EXAMPLE
         > InstallAzureArcDataAzureCliExtensions
     #>
     Write-Header "Installing Azure CLI extensions"
-    if ($skipInstallK8extensions) {
+    if ($SkipInstallK8extension) {
         $k8extensions = @()
     }
     else {
         $k8extensions = @("connectedk8s", "k8s-extension")
     }
 
-    $az_extensions = $extraAzExtensions + $k8extensions + @("arcdata")
+    $az_extensions = $ExtraAzExtension + $k8extensions + @("arcdata")
     foreach ($az_extension in $az_extensions) {
         Write-Output "Installing $az_extension"
         az extension add --name $az_extension
@@ -267,7 +285,8 @@ function InstallAzureArcDataAzureCliExtensions {
 
 function InstallAzureDataStudioExtensions {
     param (
-        [string[]] $azureDataStudioExtensions
+        [Parameter(Mandatory = $true)]
+        [string[]] $AzureDataStudioExtension
     )
     <#
         .SYNOPSIS
@@ -276,15 +295,15 @@ function InstallAzureDataStudioExtensions {
         .DESCRIPTION
         Install Data Studio extensions.
         
-        .PARAMETER azureDataStudioExtensions
+        .PARAMETER AzureDataStudioExtension
         Array with names of the extensions to install.
 
         .EXAMPLE
-        > InstallAzureDataStudioExtensions -azureDataStudioExtensions @("microsoft.azcli", "microsoft.azuredatastudio-postgresql", "Microsoft.arc")
+        > InstallAzureDataStudioExtensions -AzureDataStudioExtension @("microsoft.azcli", "microsoft.azuredatastudio-postgresql", "Microsoft.arc")
     #>
     Write-Header "Installing Azure Data Studio Extensions"
     $Env:argument1 = "--install-extension"
-    foreach ($extension in $azureDataStudioExtensions) {
+    foreach ($extension in $AzureDataStudioExtension) {
         Write-Output "Installing Arc Data Studio extension: $extension"
         & "C:\Program Files\Azure Data Studio\bin\azuredatastudio.cmd" $Env:argument1 $extension
     }
@@ -292,7 +311,8 @@ function InstallAzureDataStudioExtensions {
 
 function RegisterAzureArcProviders {
     param (
-        [string[]] $arcProviderList
+        [Parameter(Mandatory = $true)]
+        [string[]] $ArcProvider
     )
     <#
         .SYNOPSIS
@@ -301,20 +321,20 @@ function RegisterAzureArcProviders {
         .DESCRIPTION
         Register Arc Providers. Outputs each provider configuration to the standard output at the end as a verification step.
         
-        .PARAMETER arcProviderList
+        .PARAMETER ArcProvider
         Array of Arc providers to install. Note that "Microsoft." is added automatically at the beginning of the name.
 
         .EXAMPLE
-        > RegisterAzureArcProviders -arcProviderList @("Kubernetes", "KubernetesConfiguration", "ExtendedLocation", "AzureArcData")
+        > RegisterAzureArcProviders -ArcProvider @("Kubernetes", "KubernetesConfiguration", "ExtendedLocation", "AzureArcData")
     #>
     Write-Output "Registering Azure Arc providers, hold tight..."
     Write-Output "`n"
-    foreach ($provider in $arcProviderList) {
+    foreach ($provider in $ArcProvider) {
         Write-Output "Installing $provider"
         az provider register --namespace "Microsoft.$provider" --wait
     }
 
-    foreach ($provider in $arcProviderList) {
+    foreach ($provider in $ArcProvider) {
         Write-Output "`n"
         az provider show --namespace "Microsoft.$provider" -o table
     }
@@ -322,15 +342,20 @@ function RegisterAzureArcProviders {
 
 function InitializeArcDataCommonAtLogonScript {
     param (
-        [string[]] $extraAzExtensions = @(),
-        [string[]] $azureDataStudioExtensions = @("microsoft.azcli", "microsoft.azuredatastudio-postgresql", "Microsoft.arc"),
-        [string[]] $arcProviderList = @("Kubernetes", "KubernetesConfiguration", "ExtendedLocation", "AzureArcData"),
-        [switch] $skipInstallK8extensions,
-        [string] $spnClientId,
-        [string] $spnClientSecret,
-        [string] $spnTenantId,
-        [string] $adminUsername,
-        [string] $subscriptionId
+        [string[]] $ExtraAzExtension = @(),
+        [string[]] $AzureDataStudioExtension = @("microsoft.azcli", "microsoft.azuredatastudio-postgresql", "Microsoft.arc"),
+        [string[]] $ArcProvider = @("Kubernetes", "KubernetesConfiguration", "ExtendedLocation", "AzureArcData"),
+        [switch] $SkipInstallK8extension,
+        [Parameter(Mandatory = $true)]
+        [string] $SpnClientId,
+        [Parameter(Mandatory = $true)]
+        [string] $SpnClientSecret,
+        [Parameter(Mandatory = $true)]
+        [string] $SpnTenantId,
+        [Parameter(Mandatory = $true)]
+        [string] $AdminUsername,
+        [Parameter(Mandatory = $true)]
+        [string] $SubscriptionId
     )
     <#
         .SYNOPSIS
@@ -339,76 +364,80 @@ function InitializeArcDataCommonAtLogonScript {
         .DESCRIPTION
         Common DataServiceLogonScript. Performs initialization steps common to all Arc-Data scenarios.
 
-        .PARAMETER extraAzExtensions
+        .PARAMETER ExtraAzExtension
         List of Azure CLI extensions the scenario needs that are not included by default.
 
-        .PARAMETER azureDataStudioExtensions
+        .PARAMETER AzureDataStudioExtension
         List of Azure Data Studio extensions the scenario needs that are not included by default.
 
-        .PARAMETER arcProviderList
+        .PARAMETER ArcProvider
         List of Azure Arc provider the scenario needs that are not included by default.
 
-        .PARAMETER skipInstallK8extensions
+        .PARAMETER SkipInstallK8extension
         Provide this parameter to skip installation of the K8s extensions.
 
-        .PARAMETER spnClientId
+        .PARAMETER SpnClientId
         Service Principal Id to login from Azure CLI.
 
-        .PARAMETER spnClientSecret
+        .PARAMETER SpnClientSecret
         Service principal secret to login from Azure CLI.
 
-        .PARAMETER spnTenantId
+        .PARAMETER SpnTenantId
         Tenant where the service principal is defined to login from Azure CLI.
         
-        .PARAMETER adminUsername
+        .PARAMETER AdminUsername
         User name for the client VM.
 
-        .PARAMETER subscriptionId
+        .PARAMETER SubscriptionId
         Subscription Id of the Azure Subscription to deploy to.
 
         .EXAMPLE
-        > InitializeArcDataCommonAtLogonScript -spnClientId $Env:spnClientId -spnClientSecret $Env:spnClientSecret -spnTenantId $Env:spnTenantId -adminUsername $Env:adminUsername  -subscriptionId $Env:subscriptionId
+        > InitializeArcDataCommonAtLogonScript -SpnClientId $Env:spnClientId -SpnClientSecret $Env:spnClientSecret -SpnTenantId $Env:spnTenantId -AdminUsername $Env:adminUsername  -SubscriptionId $Env:subscriptionId
     #>
     Set-NetFirewallProfile -Profile Domain, Public, Private -Enabled False
 
     # Login as service principal
-    az login --service-principal --username $spnClientId --password $spnClientSecret --tenant $spnTenantId
+    az login --service-principal --username $SpnClientId --password $SpnClientSecret --tenant $SpnTenantId
 
     # Required for azcopy
-    $azurePassword = ConvertTo-SecureString $spnClientSecret -AsPlainText -Force
-    $psCred = New-Object System.Management.Automation.PSCredential($spnClientId , $azurePassword)
-    Connect-AzAccount -Credential $psCred -TenantId $spnTenantId -ServicePrincipal
+    $azurePassword = ConvertTo-SecureString $SpnClientSecret -AsPlainText -Force
+    $psCred = New-Object System.Management.Automation.PSCredential($SpnClientId , $AzurePassword)
+    Connect-AzAccount -Credential $psCred -TenantId $SpnTenantId -ServicePrincipal
 
     # Making extension install dynamic
     az config set extension.use_dynamic_install=yes_without_prompt
 
     Write-Header "Az CLI version"
     az -v
-    if ($skipInstallK8extensions) {
-        InstallAzureArcDataAzureCliExtensions -extraAzExtensions $extraAzExtensions
+    if ($SkipInstallK8extension) {
+        InstallAzureArcDataAzureCliExtensions -ExtraAzExtension $ExtraAzExtension
     }
     else {
-        InstallAzureArcDataAzureCliExtensions -extraAzExtensions $extraAzExtensions skipInstallK8extensions
+        InstallAzureArcDataAzureCliExtensions -ExtraAzExtension $ExtraAzExtension -SkipInstallK8extension
     }
 
     # Set default subscription to run commands against
     # The "subscriptionId" value comes from the clientVM.json ARM template. This is needed in case the Service 
     # Principal has access to multiple subscriptions, which can break the automation logic
-    az account set --subscription $subscriptionId
+    az account set --subscription $SubscriptionId
 
-    InstallAzureDataStudioExtensions -azureDataStudioExtensions $azureDataStudioExtensions
+    InstallAzureDataStudioExtensions -AzureDataStudioExtension $AzureDataStudioExtension
 
-    AddDesktopShortcut -shortcutName "Azure Data Studio" -targetPath "C:\Program Files\Azure Data Studio\azuredatastudio.exe" -username $adminUsername
+    AddDesktopShortcut -ShortcutName "Azure Data Studio" -TargetPath "C:\Program Files\Azure Data Studio\azuredatastudio.exe" -Username $AdminUsername
 
-    RegisterAzureArcProviders -arcProviderList $arcProviderList
+    RegisterAzureArcProviders -ArcProvider $ArcProvider
 }
 
 function DownloadCapiFiles {
     param (
-        [string] $stagingStorageAccountName,
-        [string] $resourceGroup,
-        [string] $username,
-        [string] $folder
+        [Parameter(Mandatory = $true)]
+        [string] $StagingStorageAccountName,
+        [Parameter(Mandatory = $true)]
+        [string] $ResourceGroup,
+        [Parameter(Mandatory = $true)]
+        [string] $Username,
+        [Parameter(Mandatory = $true)]
+        [string] $Folder
     )
     <#
         .SYNOPSIS
@@ -418,33 +447,33 @@ function DownloadCapiFiles {
         Download k8s files to connect the cluster API and the installation logs. Writes the K8s nodes configuration
         to the standard output at the end as a verification step
         
-        .PARAMETER stagingStorageAccountName
+        .PARAMETER StagingStorageAccountName
         Storage account name where the log and kubeconfig file are located.
 
-        .PARAMETER resourceGroup
+        .PARAMETER ResourceGroup
         Storage account resource group name.
         
-        .PARAMETER username
+        .PARAMETER Username
         User name for the client VM.
         
-        .PARAMETER folder
+        .PARAMETER Folder
         Folder where the log files are saved.
 
         .EXAMPLE
-        > DownloadCapiFiles -stagingStorageAccountName "$Env:stagingStorageAccountName" -resourceGroup "$Env:resourceGroup" -username "$Env:USERNAME" -folder "$Env:TempDir"
+        > DownloadCapiFiles -StagingStorageAccountName "$Env:stagingStorageAccountName" -ResourceGroup "$Env:resourceGroup" -Username "$Env:USERNAME" -Folder "$Env:TempDir"
     #>
     Write-Header "Downloading CAPI Kubernetes cluster kubeconfig file"
-    $sourceFile = "https://$stagingStorageAccountName.blob.core.windows.net/staging-capi/config"
-    $context = (Get-AzStorageAccount -ResourceGroupName $resourceGroup).Context
+    $sourceFile = "https://$StagingStorageAccountName.blob.core.windows.net/staging-capi/config"
+    $context = (Get-AzStorageAccount -ResourceGroupName $ResourceGroup).Context
     $sas = New-AzStorageAccountSASToken -Context $context -Service Blob -ResourceType Object -Permission racwdlup
     $sourceFile = $sourceFile + $sas
-    azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "C:\Users\$username\.kube\config"
+    azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "C:\Users\$Username\.kube\config"
 
     # Downloading 'installCAPI.log' log file
     Write-Header "Downloading 'installCAPI.log' log file"
-    $sourceFile = "https://$stagingStorageAccountName.blob.core.windows.net/staging-capi/installCAPI.log"
+    $sourceFile = "https://$StagingStorageAccountName.blob.core.windows.net/staging-capi/installCAPI.log"
     $sourceFile = $sourceFile + $sas
-    azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "$folder\installCAPI.log"
+    azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "$Folder\installCAPI.log"
 
     Write-Header "Checking kubernetes nodes"
     kubectl get nodes
@@ -452,7 +481,8 @@ function DownloadCapiFiles {
 
 function ChangingToClientVMWallpaper {
     param (
-        [string] $folder
+        [Parameter(Mandatory = $true)]
+        [string] $Folder
     )
     <#
         .SYNOPSIS
@@ -461,13 +491,13 @@ function ChangingToClientVMWallpaper {
         .DESCRIPTION
         Change the desktop Wallpaper. The new Wallpaper image is expected to be named wallpaper.png.
         
-        .PARAMETER folder
+        .PARAMETER Folder
         Folder where the new Wallpaper image is located.
 
         .EXAMPLE
-        > ChangingToClientVMWallpaper -folder $Env:TempDir
+        > ChangingToClientVMWallpaper -Folder $Env:TempDir
     #>
-    $imgPath = "$folder\wallpaper.png"
+    $imgPath = "$Folder\wallpaper.png"
     $code = @'
         using System.Runtime.InteropServices;
         namespace Win32 {
@@ -487,41 +517,12 @@ function ChangingToClientVMWallpaper {
     [Win32.Wallpaper]::SetWallpaper($imgPath)
 }
 
-function AddURLShortcutDesktop {
-    param (
-        [string] $url,
-        [string] $name,
-        [string] $userProfile
-    )
-    <#
-        .SYNOPSIS
-        Add a new Shortcut to the Windows Desktop.
-
-        .DESCRIPTION
-        Add a new Shortcut to the Windows Desktop.
-
-        .PARAMETER url
-        URL to open when the shortcut is clicked.
-
-        .PARAMETER name
-        Shortcut name.
-
-        .PARAMETER userProfile
-        User name for whom the new shortcut will be added.
-
-        .EXAMPLE
-        > AddURLShortcutDesktop -url $GrafanaURL -name "Grafana" -userProfile $userProfile
-    #>
-    $Shell = New-Object -ComObject ("WScript.Shell")
-    $Favorite = $Shell.CreateShortcut($userProfile + "\Desktop\$name.url")
-    $Favorite.TargetPath = $url;
-    $Favorite.Save()
-}
-
 function CopyAzureDataStudioSettingsTemplateFile {
     param (
-        [string] $adminUsername,
-        [string] $folder
+        [Parameter(Mandatory = $true)]
+        [string] $AdminUsername,
+        [Parameter(Mandatory = $true)]
+        [string] $Folder
     )
     <#
         .SYNOPSIS
@@ -530,27 +531,29 @@ function CopyAzureDataStudioSettingsTemplateFile {
         .DESCRIPTION
         Override Azure Data Studio configuration file.
         
-        .PARAMETER adminUsername
+        .PARAMETER AdminUsername
         Admin user name in the client VM.
 
-        .PARAMETER folder
+        .PARAMETER Folder
         Folder where the Azure Data Studio config file is located.
 
         .EXAMPLE
-        > CopyAzureDataStudioSettingsTemplateFile -adminUsername $adminUsername -folder $folder
+        > CopyAzureDataStudioSettingsTemplateFile -AdminUsername $adminUsername -Folder $folder
     #>
     Write-Header "Copying Azure Data Studio settings template file"
-    New-Item -Path "C:\Users\$adminUsername\AppData\Roaming\azuredatastudio\" -Name "User" -ItemType "directory" -Force
-    Copy-Item -Path "$folder\settingsTemplate.json" -Destination "C:\Users\$adminUsername\AppData\Roaming\azuredatastudio\User\settings.json"
+    New-Item -Path "C:\Users\$AdminUsername\AppData\Roaming\azuredatastudio\" -Name "User" -ItemType "directory" -Force
+    Copy-Item -Path "$Folder\settingsTemplate.json" -Destination "C:\Users\$AdminUsername\AppData\Roaming\azuredatastudio\User\settings.json"
 }
 
 function ApplyAzureDataStudioSettingsTemplateFileAndOperationsUrlShortcut {
     param (
-        [string] $adminUsername,
-        [string] $folder,
-        [string] $userProfile,
-        [string] $deploySQLMI,
-        [string] $deployPostgreSQL
+        [Parameter(Mandatory = $true)]
+        [string] $AdminUsername,
+        [Parameter(Mandatory = $true)]
+        [string] $Folder,
+        [Parameter(Mandatory = $true)]
+        [string] $DeploySQLMI,
+        [string] $DeployPostgreSQL
     )
     <#
         .SYNOPSIS
@@ -559,43 +562,42 @@ function ApplyAzureDataStudioSettingsTemplateFileAndOperationsUrlShortcut {
         .DESCRIPTION
         Configure Azure Data Studio if SQLMI or PostgreSQL was installed.  
         
-        .PARAMETER adminUsername
+        .PARAMETER AdminUsername
         Admin user name for the client VM.
 
-        .PARAMETER folder
+        .PARAMETER Folder
         Folder where the Azure Data Studio config file is located.
 
-        .PARAMETER userProfile
-        VM user profile to add the desktop shortcut.
-        
-        .PARAMETER deploySQLMI
+        .PARAMETER DeploySQLMI
         True if SQLMI was installed.
         
-        .PARAMETER deployPostgreSQL
+        .PARAMETER DeployPostgreSQL
         True if PostgreSQL was installed.
 
         .EXAMPLE
-        > ApplyAzureDataStudioSettingsTemplateFileAndOperationsUrlShortcut -adminUsername $Env:adminUsername -folder $Env:TempDir -userProfile $Env:USERPROFILE -deploySQLMI $Env:deploySQLMI -deployPostgreSQL $Env:deployPostgreSQL
+        > ApplyAzureDataStudioSettingsTemplateFileAndOperationsUrlShortcut -AdminUsername $Env:adminUsername -Folder $Env:TempDir -DeploySQLMI $Env:deploySQLMI -DeployPostgreSQL $Env:deployPostgreSQL
     #>
-    if ( $deploySQLMI -eq $true -or $deployPostgreSQL -eq $true ) {
-        CopyAzureDataStudioSettingsTemplateFile -adminUsername $adminUsername -folder $folder
+    if ( $DeploySQLMI -eq $true -or $DeployPostgreSQL -eq $true ) {
+        CopyAzureDataStudioSettingsTemplateFile -AdminUsername $AdminUsername -Folder $Folder
     
         # Creating desktop url shortcuts for built-in Grafana and Kibana services 
         $GrafanaURL = kubectl get service/metricsui-external-svc -n arc -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
         $GrafanaURL = "https://" + $GrafanaURL + ":3000"
-        AddURLShortcutDesktop -url $GrafanaURL -name "Grafana" -userProfile $userProfile
+        AddDesktopShortcut -ShortcutName "Grafana" -TargetPath $GrafanaURL -Username $AdminUsername -UrlMode
 
         $KibanaURL = kubectl get service/logsui-external-svc -n arc -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
         $KibanaURL = "https://" + $KibanaURL + ":5601"
-        AddURLShortcutDesktop -url $KibanaURL -name "Kibana" -userProfile $userProfile
+        AddDesktopShortcut -ShortcutName "Kibana" -TargetPath $KibanaURL -Username $AdminUsername -UrlMode
     }
 }
 
 function EnableDataControllerAutoMetrics {
     param (
-        [string] $resourceGroup,
-        [string] $workspaceName,
-        [string] $jumpstartdc = "jumpstart-dc"
+        [Parameter(Mandatory = $true)]
+        [string] $ResourceGroup,
+        [Parameter(Mandatory = $true)]
+        [string] $WorkspaceName,
+        [string] $Jumpstartdc = "jumpstart-dc"
     )
     <#
         .SYNOPSIS
@@ -604,39 +606,48 @@ function EnableDataControllerAutoMetrics {
         .DESCRIPTION
         Enable data controller metrics.
         
-        .PARAMETER resourceGroup
+        .PARAMETER ResourceGroup
         Data controller resource group name.
 
-        .PARAMETER workspaceName
+        .PARAMETER WorkspaceName
         Name of the workspace to collect metrics.
 
-        .PARAMETER jumpstartdc
+        .PARAMETER Jumpstartdc
         Data controller name.
 
         .EXAMPLE
-        > EnableDataControllerAutoMetrics -resourceGroup $Env:resourceGroup -workspaceName $Env:workspaceName
+        > EnableDataControllerAutoMetrics -ResourceGroup $Env:resourceGroup -WorkspaceName $Env:workspaceName
     #>
     Write-Header "Enabling data controller auto metrics & logs upload to log analytics"
-    $Env:WORKSPACE_ID = $(az resource show --resource-group $resourceGroup --name $workspaceName --resource-type "Microsoft.OperationalInsights/workspaces" --query properties.customerId -o tsv)
-    $Env:WORKSPACE_SHARED_KEY = $(az monitor log-analytics workspace get-shared-keys --resource-group $resourceGroup --workspace-name $workspaceName  --query primarySharedKey -o tsv)
-    az arcdata dc update --name $jumpstartdc --resource-group $resourceGroup --auto-upload-logs true
-    az arcdata dc update --name $jumpstartdc --resource-group $resourceGroup --auto-upload-metrics true
+    $Env:WORKSPACE_ID = $(az resource show --resource-group $ResourceGroup --name $WorkspaceName --resource-type "Microsoft.OperationalInsights/workspaces" --query properties.customerId -o tsv)
+    $Env:WORKSPACE_SHARED_KEY = $(az monitor log-analytics workspace get-shared-keys --resource-group $ResourceGroup --workspace-name $WorkspaceName  --query primarySharedKey -o tsv)
+    az arcdata dc update --name $Jumpstartdc --resource-group $ResourceGroup --auto-upload-logs true
+    az arcdata dc update --name $Jumpstartdc --resource-group $ResourceGroup --auto-upload-metrics true
 }
 
 function DeployAzureArcDataController {
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingPlainTextForPassword", "")]
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingUsernameAndPasswordParams", "")]
     param (
-        [string] $resourceGroup,
-        [string] $folder,
-        [string] $workspaceName,
-        [string] $AZDATA_USERNAME,
-        [string] $AZDATA_PASSWORD,
-        [string] $spnClientId,
-        [string] $spnTenantId,
-        [string] $spnClientSecret,
-        [string] $subscriptionId,
-        [string] $jumpstartcl = 'jumpstart-cl'
+        [Parameter(Mandatory = $true)]
+        [string] $ResourceGroup,
+        [Parameter(Mandatory = $true)]
+        [string] $Folder,
+        [Parameter(Mandatory = $true)]
+        [string] $WorkspaceName,
+        [Parameter(Mandatory = $true)]
+        [string] $AzdataUsername,
+        [Parameter(Mandatory = $true)]
+        [string] $AzdataPassword,
+        [Parameter(Mandatory = $true)]
+        [string] $SpnClientId,
+        [Parameter(Mandatory = $true)]
+        [string] $SpnTenantId,
+        [Parameter(Mandatory = $true)]
+        [string] $SpnClientSecret,
+        [Parameter(Mandatory = $true)]
+        [string] $SubscriptionId,
+        [string] $Jumpstartcl = 'jumpstart-cl'
     )
     <#
         .SYNOPSIS
@@ -645,60 +656,60 @@ function DeployAzureArcDataController {
         .DESCRIPTION
         Deploys the Data controller to Azure using an ARM template file. Waits until the K8s cluster starts reporting the status of the data controller.
         
-        .PARAMETER resourceGroup
+        .PARAMETER ResourceGroup
         Data controller resource group.
         
-        .PARAMETER folder
+        .PARAMETER Folder
         Folder where the data controller configuration template is located.
         
-        .PARAMETER workspaceName
+        .PARAMETER WorkspaceName
         Log Analytics Workspace name
         
-        .PARAMETER AZDATA_USERNAME
+        .PARAMETER AzdataUsername
         User account.
         
-        .PARAMETER AZDATA_PASSWORD
+        .PARAMETER AzdataPassword
         User account password.
 
         .PARAMETER spnClientId
         Client Principal Id.
 
-        .PARAMETER spnTenantId
+        .PARAMETER SpnTenantId
         Tenant Id.
 
-        .PARAMETER spnClientSecret
+        .PARAMETER SpnClientSecret
         Service Principal secret.
 
-        .PARAMETER subscriptionId
+        .PARAMETER SubscriptionId
         Subscription Id.
 
-        .PARAMETER jumpstartcl
+        .PARAMETER Jumpstartcl
         Data controller name.
 
         .EXAMPLE
-        > EnableDataControllerAutoMetrics -resourceGroup $Env:resourceGroup -workspaceName $Env:workspaceName
+        > DeployAzureArcDataController -ResourceGroup $Env:resourceGroup -Folder $Env:TempDir -WorkspaceName $Env:workspaceName -AzdataUsername $Env:AZDATA_USERNAME -AzdataPassword $Env:AZDATA_PASSWORD -SpnClientId $Env:spnClientId -SpnTenantId $Env:spnTenantId -SpnClientSecret $Env:spnClientSecret -SubscriptionId $Env:subscriptionId
     #>
     Write-Header "Deploying Azure Arc Data Controller"
-    $customLocationId = $(az customlocation show --name $jumpstartcl --resource-group $resourceGroup --query id -o tsv)
-    $workspaceId = $(az resource show --resource-group $resourceGroup --name $workspaceName --resource-type "Microsoft.OperationalInsights/workspaces" --query properties.customerId -o tsv)
-    $workspaceKey = $(az monitor log-analytics workspace get-shared-keys --resource-group $resourceGroup --workspace-name $workspaceName --query primarySharedKey -o tsv)
+    $customLocationId = $(az customlocation show --name $Jumpstartcl --resource-group $ResourceGroup --query id -o tsv)
+    $workspaceId = $(az resource show --resource-group $ResourceGroup --name $WorkspaceName --resource-type "Microsoft.OperationalInsights/workspaces" --query properties.customerId -o tsv)
+    $workspaceKey = $(az monitor log-analytics workspace get-shared-keys --resource-group $ResourceGroup --workspace-name $WorkspaceName --query primarySharedKey -o tsv)
 
-    $dataControllerParams = "$folder\dataController.parameters.json"
+    $dataControllerParams = "$Folder\dataController.parameters.json"
 
-    (Get-Content -Path $dataControllerParams) -replace 'resourceGroup-stage', $resourceGroup | Set-Content -Path $dataControllerParams
-    (Get-Content -Path $dataControllerParams) -replace 'azdataUsername-stage', $AZDATA_USERNAME | Set-Content -Path $dataControllerParams
-    (Get-Content -Path $dataControllerParams) -replace 'azdataPassword-stage', $AZDATA_PASSWORD | Set-Content -Path $dataControllerParams
+    (Get-Content -Path $dataControllerParams) -replace 'resourceGroup-stage', $ResourceGroup | Set-Content -Path $dataControllerParams
+    (Get-Content -Path $dataControllerParams) -replace 'azdataUsername-stage', $AzdataUsername | Set-Content -Path $dataControllerParams
+    (Get-Content -Path $dataControllerParams) -replace 'azdataPassword-stage', $AzdataPassword | Set-Content -Path $dataControllerParams
     (Get-Content -Path $dataControllerParams) -replace 'customLocation-stage', $customLocationId | Set-Content -Path $dataControllerParams
-    (Get-Content -Path $dataControllerParams) -replace 'subscriptionId-stage', $subscriptionId | Set-Content -Path $dataControllerParams
-    (Get-Content -Path $dataControllerParams) -replace 'spnClientId-stage', $spnClientId | Set-Content -Path $dataControllerParams
-    (Get-Content -Path $dataControllerParams) -replace 'spnTenantId-stage', $spnTenantId | Set-Content -Path $dataControllerParams
-    (Get-Content -Path $dataControllerParams) -replace 'spnClientSecret-stage', $spnClientSecret | Set-Content -Path $dataControllerParams
+    (Get-Content -Path $dataControllerParams) -replace 'subscriptionId-stage', $SubscriptionId | Set-Content -Path $dataControllerParams
+    (Get-Content -Path $dataControllerParams) -replace 'spnClientId-stage', $SpnClientId | Set-Content -Path $dataControllerParams
+    (Get-Content -Path $dataControllerParams) -replace 'spnTenantId-stage', $SpnTenantId | Set-Content -Path $dataControllerParams
+    (Get-Content -Path $dataControllerParams) -replace 'spnClientSecret-stage', $SpnClientSecret | Set-Content -Path $dataControllerParams
     (Get-Content -Path $dataControllerParams) -replace 'logAnalyticsWorkspaceId-stage', $workspaceId | Set-Content -Path $dataControllerParams
     (Get-Content -Path $dataControllerParams) -replace 'logAnalyticsPrimaryKey-stage', $workspaceKey | Set-Content -Path $dataControllerParams
 
-    az deployment group create --resource-group $resourceGroup `
-        --template-file "$folder\dataController.json" `
-        --parameters "$folder\dataController.parameters.json"
+    az deployment group create --resource-group $ResourceGroup `
+        --template-file "$Folder\dataController.json" `
+        --parameters "$Folder\dataController.parameters.json"
     Write-Output "`n"
 
     Do {
@@ -712,9 +723,12 @@ function DeployAzureArcDataController {
 
 function CreateCustomLocation {
     param (
-        [string] $resourceGroup,
-        [string] $clusterName,
-        [string] $KUBECONFIG,
+        [Parameter(Mandatory = $true)]
+        [string] $ResourceGroup,
+        [Parameter(Mandatory = $true)]
+        [string] $ClusterName,
+        [Parameter(Mandatory = $true)]
+        [string] $Kubeconfig,
         [string] $jumpstartcl = 'jumpstart-cl'
     )
     <#
@@ -724,45 +738,47 @@ function CreateCustomLocation {
         .DESCRIPTION
         Create custom location.
         
-        .PARAMETER resourceGroup
+        .PARAMETER ResourceGroup
         Resource group where the custom location is going to be deployed.
 
-        .PARAMETER clusterName
+        .PARAMETER ClusterName
         Cluster name.
 
-        .PARAMETER KUBECONFIG
+        .PARAMETER Kubeconfig
         Kubeconfig location.
 
-        .PARAMETER jumpstartcl
+        .PARAMETER Jumpstartcl
          Custom location name.
         
         .EXAMPLE
-        > CreateCustomLocation -resourceGroup $Env:resourceGroup -clusterName $Env:ArcK8sClusterName -KUBECONFIG $Env:KUBECONFIG
+        > CreateCustomLocation -ResourceGroup $Env:resourceGroup -ClusterName $Env:ArcK8sClusterName -Kubeconfig $Env:KUBECONFIG
     #>
     Write-Header "Create Custom Location"
-    $connectedClusterId = az connectedk8s show --name $clusterName --resource-group $resourceGroup --query id -o tsv
+    $connectedClusterId = az connectedk8s show --name $ClusterName --resource-group $ResourceGroup --query id -o tsv
 
     $extensionId = az k8s-extension show --name arc-data-services `
         --cluster-type connectedClusters `
-        --cluster-name $clusterName `
-        --resource-group $resourceGroup `
+        --cluster-name $ClusterName `
+        --resource-group $ResourceGroup `
         --query id -o tsv
 
     Start-Sleep -Seconds 20
     # Create Custom Location
-    az customlocation create --name $jumpstartcl `
-        --resource-group $resourceGroup `
+    az customlocation create --name $Jumpstartcl `
+        --resource-group $ResourceGroup `
         --namespace arc `
         --host-resource-id $connectedClusterId `
         --cluster-extension-ids $extensionId `
-        --kubeconfig $KUBECONFIG
+        --kubeconfig $Kubeconfig
     
 }
 
 function InstallAzureArcEnabledDataServicesExtension {
     param (
-        [string] $resourceGroup,
-        [string] $clusterName
+        [Parameter(Mandatory = $true)]
+        [string] $ResourceGroup,
+        [Parameter(Mandatory = $true)]
+        [string] $ClusterName
     )
     <#
         .SYNOPSIS
@@ -771,21 +787,21 @@ function InstallAzureArcEnabledDataServicesExtension {
         .DESCRIPTION
         Install the Azure Arc-enabled data services extension.
 
-        .PARAMETER resourceGroup
+        .PARAMETER ResourceGroup
         Resource group where the cluster is located.
 
-        .PARAMETER resourceGroup
+        .PARAMETER ClusterName
         Cluster name.
         
         .EXAMPLE
-        > InstallAzureArcEnabledDataServicesExtension -resourceGroup $Env:resourceGroup -clusterName $Env:ArcK8sClusterName
+        > InstallAzureArcEnabledDataServicesExtension -ResourceGroup $Env:resourceGroup -ClusterName $Env:ArcK8sClusterName
     #>
     Write-Header "Installing Azure Arc-enabled data services extension"
     az k8s-extension create --name arc-data-services `
         --extension-type microsoft.arcdataservices `
         --cluster-type connectedClusters `
-        --cluster-name $clusterName `
-        --resource-group $resourceGroup `
+        --cluster-name $ClusterName `
+        --resource-group $ResourceGroup `
         --auto-upgrade false `
         --scope cluster `
         --release-namespace arc `

@@ -2,44 +2,56 @@ function DeployAzureArcPostgreSQL {
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingPlainTextForPassword", "")]
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingUsernameAndPasswordParams", "")]
     param (
-        [string]
-        # Resource group where the resource are being created
-        $resourceGroup,
-        [string]
-        # Folder where the config files are present
-        $folder,
-        [string]
-        # Az password needed for PostgreSQL configuration
-        $azdataPassword,
-        [string]
-        # Azure subscription id needed for PostgreSQL configuration
-        $subscriptionId,
-        [string]
-        # true if SQLMI was deployed
-        $deploySQLMI,
-        [string]
-        # Data controller name
-        $controllerName = "jumpstart-dc",
-        [string]
-        # Custom location name
-        $customLocation = "jumpstart-cl"
+        [Parameter(Mandatory = $true)]
+        [string]$ResourceGroup,
+        [Parameter(Mandatory = $true)]
+        [string]$Folder,
+        [Parameter(Mandatory = $true)]
+        [string]$AzdataPassword,
+        [Parameter(Mandatory = $true)]
+        [string]$SubscriptionId,
+        [string]$DeploySQLMI,
+        [string]$ControllerName = "jumpstart-dc",
+        [string]$CustomLocation = "jumpstart-cl"
     )
+    
     <#
-        .DESCRIPTION
-        Deploy  Azure Arc PostgreSQL  
-        
-        .OUTPUTS
-        Azure Arc PostgreSQL on the k8s cluster
+        .SYNOPSIS
+        Deploy Azure Arc PostgreSQL.  
 
+        .DESCRIPTION
+        Deploy Azure Arc PostgreSQL.  
+
+        .PARAMETER ResourceGroup
+         Resource group where the resources are being created.
+
+        .PARAMETER Folder
+         Folder where the config files are present     . 
+
+        .PARAMETER AzdataPassword
+        Azure cli password.
+
+        .PARAMETER SubscriptionId
+        Azure subscription id needed for PostgreSQL configuration.
+
+        .PARAMETER DeploySQLMI
+        true if SQLMI was deployed.
+
+        .PARAMETER ControllerName
+        Data controller name.
+
+        .PARAMETER CustomLocation
+        Custom location name.
+        
         .EXAMPLE
-        > DeployAzureArcPostgreSQL  -resourceGroup $Env:resourceGroup -folder $Env:TempDir -azdataPassword $env:AZDATA_PASSWORD -subscriptionId $Env:subscriptionId -deploySQLMI $env:deploySQLMI
+        > DeployAzureArcPostgreSQL -ResourceGroup $Env:resourceGroup -Folder $Env:TempDir -AzdataPassword $env:AZDATA_PASSWORD -SubscriptionId $Env:subscriptionId -DeploySQLMI $env:deploySQLMI
     #>
     Write-Header "Deploying Azure Arc PostgreSQL"
    
-    $customLocationId = $(az customlocation show --name $customLocation --resource-group $resourceGroup --query id -o tsv)
-    $dataControllerId = $(az resource show --resource-group $resourceGroup --name $controllerName --resource-type "Microsoft.AzureArcData/dataControllers" --query id -o tsv)
+    $customLocationId = $(az customlocation show --name $CustomLocation --resource-group $ResourceGroup --query id -o tsv)
+    $dataControllerId = $(az resource show --resource-group $ResourceGroup --name $ControllerName --resource-type "Microsoft.AzureArcData/dataControllers" --query id -o tsv)
 
-    Write-Header  Localize ARM template
+    Write-Header  "Localize ARM template"
     $ServiceType = "LoadBalancer"
 
     # Resource Requests
@@ -58,13 +70,13 @@ function DeployAzureArcPostgreSQL {
     $numWorkers = 1
     ################################################
 
-    $PSQLParams = "$folder\postgreSQL.parameters.json"
+    $PSQLParams = "$Folder\postgreSQL.parameters.json"
 
-(Get-Content -Path $PSQLParams) -replace 'resourceGroup-stage', $resourceGroup | Set-Content -Path $PSQLParams
+(Get-Content -Path $PSQLParams) -replace 'resourceGroup-stage', $ResourceGroup | Set-Content -Path $PSQLParams
 (Get-Content -Path $PSQLParams) -replace 'dataControllerId-stage', $dataControllerId | Set-Content -Path $PSQLParams
 (Get-Content -Path $PSQLParams) -replace 'customLocation-stage', $customLocationId | Set-Content -Path $PSQLParams
-(Get-Content -Path $PSQLParams) -replace 'subscriptionId-stage', $subscriptionId | Set-Content -Path $PSQLParams
-(Get-Content -Path $PSQLParams) -replace 'azdataPassword-stage', $azdataPassword | Set-Content -Path $PSQLParams
+(Get-Content -Path $PSQLParams) -replace 'subscriptionId-stage', $SubscriptionId | Set-Content -Path $PSQLParams
+(Get-Content -Path $PSQLParams) -replace 'azdataPassword-stage', $AzdataPassword | Set-Content -Path $PSQLParams
 (Get-Content -Path $PSQLParams) -replace 'serviceType-stage', $ServiceType | Set-Content -Path $PSQLParams
 (Get-Content -Path $PSQLParams) -replace 'coordinatorCoresRequest-stage', $coordinatorCoresRequest | Set-Content -Path $PSQLParams
 (Get-Content -Path $PSQLParams) -replace 'coordinatorMemoryRequest-stage', $coordinatorMemoryRequest | Set-Content -Path $PSQLParams
@@ -78,9 +90,9 @@ function DeployAzureArcPostgreSQL {
 (Get-Content -Path $PSQLParams) -replace 'backupsSize-stage', $backupsStorageSize | Set-Content -Path $PSQLParams
 (Get-Content -Path $PSQLParams) -replace 'numWorkersStage', $numWorkers | Set-Content -Path $PSQLParams
 
-    az deployment group create --resource-group $resourceGroup `
-        --template-file "$folder\postgreSQL.json" `
-        --parameters "$folder\postgreSQL.parameters.json"
+    az deployment group create --resource-group $ResourceGroup `
+        --template-file "$Folder\postgreSQL.json" `
+        --parameters "$Folder\postgreSQL.parameters.json"
 
     # Ensures postgres container is initiated and ready to accept restores
     $pgControllerPodName = "jumpstartpsc0-0"
@@ -110,19 +122,19 @@ function DeployAzureArcPostgreSQL {
 
     # Creating Azure Data Studio settings for PostgreSQL connection
     Write-Header "Creating Azure Data Studio settings for PostgreSQL connection"
-    $settingsTemplate = "$folder\settingsTemplate.json"
+    $settingsTemplate = "$Folder\settingsTemplate.json"
 
     # Retrieving PostgreSQL connection endpoint
     $pgsqlstring = kubectl get postgresql jumpstartps -n arc -o=jsonpath='{.status.primaryEndpoint}'
 
     # Replace placeholder values in settingsTemplate.json
-(Get-Content -Path $settingsTemplate) -replace 'arc_postgres_host', $pgsqlstring.split(":")[0] | Set-Content -Path $settingsTemplate
-(Get-Content -Path $settingsTemplate) -replace 'arc_postgres_port', $pgsqlstring.split(":")[1] | Set-Content -Path $settingsTemplate
-(Get-Content -Path $settingsTemplate) -replace 'ps_password', $azdataPassword | Set-Content -Path $settingsTemplate
+    (Get-Content -Path $settingsTemplate) -replace 'arc_postgres_host', $pgsqlstring.split(":")[0] | Set-Content -Path $settingsTemplate
+    (Get-Content -Path $settingsTemplate) -replace 'arc_postgres_port', $pgsqlstring.split(":")[1] | Set-Content -Path $settingsTemplate
+    (Get-Content -Path $settingsTemplate) -replace 'ps_password', $AzdataPassword | Set-Content -Path $settingsTemplate
 
 
     # If SQL MI isn't being deployed, clean up settings file
-    if ( $deploySQLMI -eq $false ) {
+    if ( $DeploySQLMI -eq $false ) {
         $string = Get-Content -Path $settingsTemplate | Select-Object -First 9 -Last 24
         $string | Set-Content -Path $settingsTemplate
     }

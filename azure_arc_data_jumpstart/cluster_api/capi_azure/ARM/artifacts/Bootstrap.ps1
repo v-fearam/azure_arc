@@ -49,7 +49,7 @@ Invoke-WebRequest -Uri ($profileRootBaseUrl + "..\common\script\powershell\ArcCo
 Invoke-WebRequest -Uri ($profileRootBaseUrl + "..\common\script\powershell\ArcDataProfile.ps1") -OutFile $PsHome\Profile.ps1
 . $PsHome\Profile.ps1
 
-BootstrapArcData -profileRootBaseUrl $profileRootBaseUrl -templateBaseUrl $templateBaseUrl -adminUsername $adminUsername -folder $Env:tempDir
+BootstrapArcData -ProfileRootBaseUrl $profileRootBaseUrl -TemplateBaseUrl $templateBaseUrl -AdminUsername $adminUsername -Folder $Env:tempDir
 
 # Downloading GitHub artifacts for DataServicesLogonScript.ps1
 Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/capiStorageClass.yaml") -OutFile "$Env:tempDir\capiStorageClass.yaml"
