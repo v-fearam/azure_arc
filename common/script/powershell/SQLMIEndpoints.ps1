@@ -4,16 +4,45 @@ function CreateSQLMIEndpoints {
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingPlainTextForPassword", "")]
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingUsernameAndPasswordParams", "")]
     param (
-        [string]$folder,
-        [string]$adminUsername,
-        [string]$azdataUsername,
-        [string]$azdataPassword,
+        [Parameter(Mandatory = $true)]
+        [string]$Folder,
+        [Parameter(Mandatory = $true)]
+        [string]$AdminUsername,
+        [Parameter(Mandatory = $true)]
+        [string]$AzdataUsername,
+        [Parameter(Mandatory = $true)]
+        [string]$AzdataPassword,
         [string]$SQLMIHA
     )
-    Write-Header "Creating SQLMI Endpoints"
+    <#
+        .SYNOPSIS
+        Create Azure Arc SQLManagedInstance enpoints shortcut.
 
-    New-Item -Path "$folder" -Name "SQLMIEndpoints.txt" -ItemType "file" 
-    $Endpoints = "$folder\SQLMIEndpoints.txt"
+        .DESCRIPTION
+        Create Azure Arc SQLManagedInstance enpoints shortcut.
+
+        .PARAMETER Folder
+        Folder where the template is located.
+
+        .PARAMETER AdminUsername
+        VM admin username.
+
+        .PARAMETER AzdataUsername
+        Az username needed for SQLManagedInstance configuration.
+
+        .PARAMETER AzdataPassword
+        Az password needed for SQLManagedInstance configuration.
+
+        .PARAMETER SQLMIHA
+        true if SQLMIHA was deployed
+
+        .EXAMPLE
+        >  CreateSQLMIEndpoints -Folder $Folder -AdminUsername $adminUsername -AzdataUsername $azdataUsername -AzdataPassword $AzdataPassword -SQLMIHA $SQLMIHA
+    #>
+    WriteHeader "Creating SQLMI Endpoints"
+
+    New-Item -Path "$Folder" -Name "SQLMIEndpoints.txt" -ItemType "file" 
+    $Endpoints = "$Folder\SQLMIEndpoints.txt"
 
     # Retrieving SQL MI connection endpoints
     Add-Content $Endpoints "Primary SQL Managed Instance external endpoint:"
@@ -30,11 +59,11 @@ function CreateSQLMIEndpoints {
     # Retrieving SQL MI connection username and password
     Add-Content $Endpoints ""
     Add-Content $Endpoints "SQL Managed Instance username:"
-    $azdataUsername | Add-Content $Endpoints
+    $AzdataUsername | Add-Content $Endpoints
 
     Add-Content $Endpoints ""
     Add-Content $Endpoints "SQL Managed Instance password:"
-    $azdataPassword | Add-Content $Endpoints
+    $AzdataPassword | Add-Content $Endpoints
 
-    AddDesktopShortcut -username $adminUsername -targetPath $Endpoints -shortcutName "SQLMI Endpoints"
+    AddDesktopShortcut -Username $AdminUsername -TargetPath $Endpoints -ShortcutName "SQLMI Endpoints"
 }
