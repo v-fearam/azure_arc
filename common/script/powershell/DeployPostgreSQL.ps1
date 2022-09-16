@@ -95,13 +95,12 @@ function DeployAzureArcPostgreSQL {
         --parameters "$Folder\postgreSQL.parameters.json"
 
     # Ensures postgres container is initiated and ready to accept restores
-    $pgControllerPodName = "jumpstartpsc0-0"
-    $pgWorkerPodName = "jumpstartpsw0-0"
-
+    $pgControllerPodName = "jumpstartps-0"
+  
     Do {
         Write-Output "Waiting for PostgreSQL. Hold tight, this might take a few minutes...(45s sleeping loop)"
         Start-Sleep -Seconds 45
-        $buildService = $(if ((kubectl get pods -n arc | Select-String $pgControllerPodName | Select-String "Running" -Quiet) -and (kubectl get pods -n arc | Select-String $pgWorkerPodName | Select-String "Running" -Quiet)) { "Ready!" }Else { "Nope" })
+        $buildService = $(if (kubectl get pods -n arc | Select-String $pgControllerPodName | Select-String "Running" -Quiet) { "Ready!" }Else { "Nope" })
     } while ($buildService -eq "Nope")
 
     Write-Header "Azure Arc-enabled PostgreSQL is ready!"
