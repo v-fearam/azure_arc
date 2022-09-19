@@ -106,10 +106,10 @@ function DeployAzureArcPostgreSQL {
     Write-Header "Azure Arc-enabled PostgreSQL is ready!"
     Start-Sleep -Seconds 60
 
-    # Update Service Port from 5432 to Non-Standard
-    $payload = '{\"spec\":{\"ports\":[{\"name\":\"port-pgsql\",\"port\":15432,\"targetPort\":5432}]}}'
-    kubectl patch svc jumpstartps-external-svc -n arc --type merge --patch $payload
-    Start-Sleep -Seconds 60
+  # Update Service Port from 5432 to Non-Standard
+  #  $payload = '{\"spec\":{\"ports\":[{\"name\":\"port-pgsql\",\"port\":15432,\"targetPort\":5432}]}}'
+  #  kubectl patch svc jumpstartps-external-svc -n arc --type merge --patch $payload
+  #  Start-Sleep -Seconds 60
 
     # Downloading demo database and restoring onto Postgres
     Write-Header "Downloading AdventureWorks.sql template for Postgres... (1/3)"
