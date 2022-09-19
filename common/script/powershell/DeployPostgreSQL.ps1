@@ -125,7 +125,7 @@ function DeployAzureArcPostgreSQL {
 
     # Retrieving PostgreSQL connection endpoint
     $pgsqlstring = kubectl get postgresql jumpstartps -n arc -o=jsonpath='{.status.primaryEndpoint}'
-
+    Write-Output "connection string: $pgsqlstring"
     # Replace placeholder values in settingsTemplate.json
     (Get-Content -Path $settingsTemplate) -replace 'arc_postgres_host', $pgsqlstring.split(":")[0] | Set-Content -Path $settingsTemplate
     (Get-Content -Path $settingsTemplate) -replace 'arc_postgres_port', $pgsqlstring.split(":")[1] | Set-Content -Path $settingsTemplate

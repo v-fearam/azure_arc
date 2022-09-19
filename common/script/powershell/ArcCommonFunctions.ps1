@@ -542,6 +542,7 @@ function CopyAzureDataStudioSettingsTemplateFile {
     #>
     Write-Header "Copying Azure Data Studio settings template file"
     New-Item -Path "C:\Users\$AdminUsername\AppData\Roaming\azuredatastudio\" -Name "User" -ItemType "directory" -Force
+    Write-Output "C:\Users\$AdminUsername\AppData\Roaming\azuredatastudio\User\settings.json"
     Copy-Item -Path "$Folder\settingsTemplate.json" -Destination "C:\Users\$AdminUsername\AppData\Roaming\azuredatastudio\User\settings.json"
 }
 
