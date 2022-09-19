@@ -220,10 +220,11 @@ function AddDesktopShortcut {
     #>
     
     Write-Header "Creating $ShortcutName Desktop shortcut"
-    If($UrlMode){
-        $extension="url"
-    }else{
-        $extension="lnk"
+    If ($UrlMode) {
+        $extension = "url"
+    }
+    else {
+        $extension = "lnk"
     }
 
     if ( -not $Username) {
@@ -243,7 +244,9 @@ function AddDesktopShortcut {
     if ($Icon) {
         $shortcut.IconLocation = "${Env:ArcBoxIconDir}\$Icon.ico, 0"
     }
-    $shortcut.WindowStyle = $WindowStyle
+    If (-not ($UrlMode)) {
+        $shortcut.WindowStyle = $WindowStyle
+    }
     $shortcut.Save()
 }
 
