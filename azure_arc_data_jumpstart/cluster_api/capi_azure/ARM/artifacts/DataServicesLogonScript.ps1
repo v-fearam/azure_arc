@@ -103,6 +103,7 @@ $kubectlMonShell = Start-Process -PassThru PowerShell {for (0 -lt 1) {kubectl ge
 # Installing Azure Arc-enabled data services extension
 Write-Host "`n"
 Write-Host "Installing Azure Arc-enabled data services extension"
+az k8s-extension -h
 az k8s-extension create --name arc-data-services `
                         --extension-type microsoft.arcdataservices `
                         --cluster-type connectedClusters `
