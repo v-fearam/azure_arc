@@ -35,15 +35,15 @@ function DeployAzureArcSQLManagedInstance {
     )
     <#
         .DESCRIPTION
-        Deploy  Azure Arc SQLManagedInstance  
+        Deploy  Azure Arc-enabled SQLManagedInstance  
         
         .OUTPUTS
-        Azure Arc SQLManagedInstance on the k8s cluster
+        Azure Arc-enabled SQLManagedInstance on the k8s cluster
 
         .EXAMPLE
         >  DeployAzureArcSQLManagedInstance -resourceGroup $Env:resourceGroup -folder $Env:TempDir -adminUsername $Env:adminUsername -azdataUsername $Env:AZDATA_USERNAME -azdataPassword $env:AZDATA_PASSWORD -subscriptionId $Env:subscriptionId -SQLMIHA $env:SQLMIHA -deployPostgreSQL $Env:deployPostgreSQL
     #>
-    Write-Header "Deploying Azure Arc SQL Managed Instance"
+    Write-Header "Deploying Azure Arc-enabled SQL Managed Instance"
 
     $customLocationId = $(az customlocation show --name $customLocation --resource-group $resourceGroup --query id -o tsv)
     $dataControllerId = $(az resource show --resource-group $resourceGroup --name $controllerName --resource-type "Microsoft.AzureArcData/dataControllers" --query id -o tsv)
@@ -111,7 +111,7 @@ function DeployAzureArcSQLManagedInstance {
         $dcStatus = $(if (kubectl get sqlmanagedinstances -n arc | Select-String "Ready" -Quiet) { "Ready!" }Else { "Nope" })
     } while ($dcStatus -eq "Nope")
 
-    Write-Header  "Azure Arc SQL Managed Instance is ready!"
+    Write-Header  "Azure Arc-enabled SQL Managed Instance is ready!"
 
     # Update Service Port from 1433 to Non-Standard
     $payload = '{\"spec\":{\"ports\":[{\"name\":\"port-mssql-tds\",\"port\":11433,\"targetPort\":1433}]}}'
