@@ -1,33 +1,4 @@
 
-function WriteHeader {
-    param (
-        [Parameter(Mandatory = $true)]
-        [string] $Title
-    )
-    <#
-        .SYNOPSIS
-        Write the title passed as a parameter as a formatted header to the standard output.
-        
-        .DESCRIPTION
-        Write the title passed as a parameter as a formatted header to the standard output. Use this function to separate sections of log entries during execution.
-
-        .PARAMETER Title
-        Text to write.
-
-        .EXAMPLE
-        > WriteHeader "Az CLI Login"
-
-        ####################
-        # - Az CLI Login
-        ####################
-    #>
-    Write-Host
-    Write-Host ("#" * ($Title.Length + 8))
-    Write-Host "# - $Title"
-    Write-Host ("#" * ($Title.Length + 8))
-    Write-Host
-}
-
 function InstallChocolateyPackages {
     param(
         [Parameter(Mandatory = $true)]
@@ -309,37 +280,6 @@ function InstallAzureDataStudioExtensions {
     foreach ($extension in $AzureDataStudioExtensionList) {
         Write-Output "Installing Arc Data Studio extension: $extension"
         & "C:\Program Files\Azure Data Studio\bin\azuredatastudio.cmd" $Env:argument1 $extension
-    }
-}
-
-function RegisterAzureArcProviders {
-    param (
-        [Parameter(Mandatory = $true)]
-        [string[]] $ArcProviderList
-    )
-    <#
-        .SYNOPSIS
-        Register Arc Providers.
-
-        .DESCRIPTION
-        Register Arc Providers. Outputs each provider configuration to the standard output at the end as a verification step.
-        
-        .PARAMETER ArcProviderList
-        Array of Arc providers to install. Note that "Microsoft." is added automatically at the beginning of the name.
-
-        .EXAMPLE
-        > RegisterAzureArcProviders -ArcProvider @("Kubernetes", "KubernetesConfiguration", "ExtendedLocation", "AzureArcData")
-    #>
-    Write-Output "Registering Azure Arc providers, hold tight..."
-    Write-Output "`n"
-    foreach ($provider in $ArcProviderList) {
-        Write-Output "Installing $provider"
-        az provider register --namespace "Microsoft.$provider" --wait
-    }
-
-    foreach ($provider in $ArcProviderList) {
-        Write-Output "`n"
-        az provider show --namespace "Microsoft.$provider" -o table
     }
 }
 
