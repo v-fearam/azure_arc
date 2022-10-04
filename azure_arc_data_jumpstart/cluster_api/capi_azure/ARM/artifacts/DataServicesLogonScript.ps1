@@ -35,26 +35,38 @@ InstallAzureArcEnabledDataServicesExtension -ResourceGroup $Env:resourceGroup -C
 
 CreateCustomLocation -ResourceGroup $Env:resourceGroup -ClusterName $Env:ArcK8sClusterName -Kubeconfig $Env:KUBECONFIG
 
-DeployAzureArcDataController -ResourceGroup $Env:resourceGroup -Folder $Env:TempDir -WorkspaceName $Env:workspaceName -AzdataUsername $Env:AZDATA_USERNAME -AzdataPassword $Env:AZDATA_PASSWORD -SpnClientId $Env:spnClientId -SpnTenantId $Env:spnTenantId -SpnClientSecret $Env:spnClientSecret -SubscriptionId $Env:subscriptionId
+Write-Host $Env:AZDATA_PASSWORD
+$AzdataPasswordSecure = ConvertTo-SecureString $Env:AZDATA_PASSWORD -AsPlainText -Force
+Write-Host $AzdataPasswordSecure
+DeployAzureArcDataController -ResourceGroup $Env:resourceGroup -Folder $Env:TempDir -WorkspaceName $Env:workspaceName -AzdataUsername $Env:AZDATA_USERNAME -AzdataPassword $AzdataPasswordSecure -SpnClientId $Env:spnClientId -SpnTenantId $Env:spnTenantId -SpnClientSecret $Env:spnClientSecret -SubscriptionId $Env:subscriptionId
 
 # If flag set, deploy SQL MI
 if ( $Env:deploySQLMI -eq $true ) {
-    . "$Env:TempDir\DeploySQLMI.ps1"
-    DeployAzureArcSQLManagedInstance -ResourceGroup $Env:resourceGroup -Folder $Env:TempDir -AdminUsername $Env:adminUsername -AzdataUsername $Env:AZDATA_USERNAME -AzdataPassword $env:AZDATA_PASSWORD -SubscriptionId $Env:subscriptionId -SQLMIHA $Env:SQLMIHA -DeployPostgreSQL $Env:deployPostgreSQL
+    DeployAzureArcSQLManagedInstance -ResourceGroup $Env:resourceGroup -Folder $Env:TempDir -AdminUsername $Env:adminUsername -AzdataUsername $Env:AZDATA_USERNAME -AzdataPassword $AzdataPasswordSecure -SubscriptionId $Env:subscriptionId -SQLMIHA $Env:SQLMIHA -DeployPostgreSQL $Env:deployPostgreSQL
 }
 
 # If flag set, deploy PostgreSQL
 if ( $Env:deployPostgreSQL -eq $true ) {
-    . "$Env:TempDir\DeployPostgreSQL.ps1"
-    DeployAzureArcPostgreSQL -ResourceGroup $Env:resourceGroup -Folder $Env:TempDir -AzdataPassword $Env:AZDATA_PASSWORD -SubscriptionId $Env:subscriptionId -DeploySQLMI $Env:deploySQLMI
+    DeployAzureArcPostgreSQL -ResourceGroup $Env:resourceGroup -Folder $Env:TempDir -AzdataPassword $AzdataPasswordSecure -SubscriptionId $Env:subscriptionId -DeploySQLMI $Env:deploySQLMI
 }
 
 EnableDataControllerAutoMetrics -ResourceGroup $Env:resourceGroup -WorkspaceName $Env:workspaceName
 
-ApplyAzureDataStudioSettingsTemplateFileAndOperationsUrlShortcut -AdminUsername $Env:adminUsername -Folder $Env:TempDir -DeploySQLMI $Env:deploySQLMI -DeployPostgreSQL $Env:deployPostgreSQL
+if ( $Env:deploySQLMI -eq $true -or $Env:deployPostgreSQL -eq $true ){
+    CopyAzureDataStudioSettingsTemplateFile -AdminUsername $Env:adminUsername -Folder $Env:TempDir
+
+    # Creating desktop url shortcuts for built-in Grafana and Kibana services 
+    $GrafanaURL = kubectl get service/metricsui-external-svc -n arc -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+    $GrafanaURL = "https://" + $GrafanaURL + ":3000"
+    AddDesktopShortcut -ShortcutName "Grafana" -TargetPath $GrafanaURL -Username $Env:adminUsername -UrlMode
+
+    $KibanaURL = kubectl get service/logsui-external-svc -n arc -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+    $KibanaURL = "https://" + $KibanaURL + ":5601"
+    AddDesktopShortcut -ShortcutName "Kibana" -TargetPath $KibanaURL -Username $Env:adminUsername -UrlMode
+}
 
 # Changing to Client VM wallpaper
-ChangingToClientVMWallpaper -Folder $Env:TempDir
+ChangeWallpaper -Folder $Env:TempDir
 
 # Kill the open PowerShell monitoring kubectl get pods
 Stop-Process -Id $kubectlMonShell.Id

@@ -17,7 +17,7 @@ The Arc Jumpstart toolkit files documentation follows the guidance at
     ModuleVersion     = '1.0.0.0'  
 	NestedModules     = @('.\ArcData\ArcData.psm1','.\General\General.psm1')
     Author            = 'Microsoft'
-	FunctionsToExport = @('InstallAzureArcDataCliExtensions','InstallAzureDataStudioExtensions','RegisterAzureArcDataProviders','WriteHeader','AddDesktopShortcut')
+	FunctionsToExport = @('BootstrapArcData','InstallAzureArcDataCliExtensions','InstallAzureDataStudioExtensions','RegisterAzureArcDataProviders','DownloadCapiFiles','CopyAzureDataStudioSettingsTemplateFile','EnableDataControllerAutoMetrics','DeployAzureArcDataController','CreateCustomLocation','InstallAzureArcEnabledDataServicesExtension','DeployAzureArcPostgreSQL','DeployAzureArcSQLManagedInstance','WriteHeader','AddDesktopShortcut','InstallChocolateyPackages','ChangeWallpaper','AddLogonScript')
 	Description       = 'ArcJumpstart common functions'
     CompanyName       = 'Microsoft'
 }
