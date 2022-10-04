@@ -1,6 +1,25 @@
 Start-Transcript -Path C:\Temp\DataServicesLogonScript.log
 
-InitializeArcDataCommonAtLogonScript -SpnClientId $Env:spnClientId -SpnClientSecret $Env:spnClientSecret -SpnTenantId $Env:spnTenantId -AdminUsername $Env:adminUsername  -SubscriptionId $Env:subscriptionId
+Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
+
+# Making extension install dynamic
+az config set extension.use_dynamic_install=yes_without_prompt
+
+# Required for azcopy
+$azurePassword = ConvertTo-SecureString $Env:spnClientSecret -AsPlainText -Force
+$psCred = New-Object System.Management.Automation.PSCredential($Env:spnClientId , $azurePassword)
+Connect-AzAccount -Credential $psCred -TenantId $Env:spnTenantId -ServicePrincipal
+
+# Login as service principal
+az login --service-principal --username $Env:spnClientId --password $Env:spnClientSecret --tenant $Env:spnTenantId
+
+InstallAzureArcDataCliExtensions
+
+InstallAzureDataStudioExtensions
+
+AddDesktopShortcut -ShortcutName "Azure Data Studio" -TargetPath "C:\Program Files\Azure Data Studio\azuredatastudio.exe" -Username $AdminUsername
+
+RegisterAzureArcDataProviders
 
 DownloadCapiFiles -StagingStorageAccountName "$Env:stagingStorageAccountName" -ResourceGroup "$Env:resourceGroup" -Username "$Env:USERNAME" -Folder "$Env:TempDir"
 

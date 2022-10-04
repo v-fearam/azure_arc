@@ -12,15 +12,12 @@ The Arc Jumpstart toolkit files documentation follows the guidance at
 
 ```
  cd common\script\powershell
- mkdir ArcJumpstart
-mkdir ArcJumpstart\Modules
- mkdir ArcJumpstart\Modules\ArcData
  $manifest = @{
     Path              = 'Modules\ArcJumpstart\ArcJumpstart.psd1'
     ModuleVersion     = '1.0.0.0'  
 	NestedModules     = @('.\ArcData\ArcData.psm1','.\General\General.psm1')
     Author            = 'Microsoft'
-	FunctionsToExport = @('RegisterAzureArcProviders','WriteHeader')
+	FunctionsToExport = @('InstallAzureArcDataCliExtensions','InstallAzureDataStudioExtensions','RegisterAzureArcDataProviders','WriteHeader','AddDesktopShortcut')
 	Description       = 'ArcJumpstart common functions'
     CompanyName       = 'Microsoft'
 }
