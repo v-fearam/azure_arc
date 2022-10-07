@@ -202,3 +202,26 @@ function AddLogonScript {
     $Action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument $Script
     Register-ScheduledTask -TaskName $TaskName -Trigger $Trigger -User $AdminUsername -Action $Action -RunLevel "Highest" -Force
 }
+function ForceAzureClientsLogin {
+    <#
+        .SYNOPSIS
+        Force az cli libraries to be loged in, if not it writes an error and close the script. The subcription between powershell client and az cli must be de same.
+
+        .DESCRIPTION
+        Force az cli libraries to be loged in, if not it writes an error and close the script. The subcription between powershell client and az cli must be de same.
+        
+        .EXAMPLE
+        > ForceAzureClientsLogin
+    #>
+    $azureCliContext = $(az account show | ConvertFrom-Json) 2>$null
+    if (-not $azureCliContext) {
+        Write-Host "ERROR: Azure CLI not logged in or no subscription has been selected!" -ForegroundColor red
+        exit
+    }
+    $azureCliSub = $azureCliContext.id
+    $azurePowerShellSub = (Get-AzContext).Subscription.Id
+    if ($azurePowerShellSub -ne $azureCliSub) {
+        Write-Host "ERROR: Azure PowerShell and Azure CLI must be set to the same context!" -ForegroundColor red
+        exit
+    }
+}

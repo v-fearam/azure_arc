@@ -35,9 +35,7 @@ InstallAzureArcEnabledDataServicesExtension -ResourceGroup $Env:resourceGroup -C
 
 CreateCustomLocation -ResourceGroup $Env:resourceGroup -ClusterName $Env:ArcK8sClusterName -Kubeconfig $Env:KUBECONFIG
 
-Write-Host $Env:AZDATA_PASSWORD
 $AzdataPasswordSecure = ConvertTo-SecureString $Env:AZDATA_PASSWORD -AsPlainText -Force
-Write-Host $AzdataPasswordSecure
 DeployAzureArcDataController -ResourceGroup $Env:resourceGroup -Folder $Env:TempDir -WorkspaceName $Env:workspaceName -AzdataUsername $Env:AZDATA_USERNAME -AzdataPassword $AzdataPasswordSecure -SpnClientId $Env:spnClientId -SpnTenantId $Env:spnTenantId -SpnClientSecret $Env:spnClientSecret -SubscriptionId $Env:subscriptionId
 
 # If flag set, deploy SQL MI

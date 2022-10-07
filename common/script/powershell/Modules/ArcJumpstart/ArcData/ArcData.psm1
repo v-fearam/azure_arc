@@ -114,6 +114,7 @@ function InstallAzureArcDataCliExtensions {
         > InstallAzureArcDataAzureCliExtensions
     #>
     WriteHeader "Installing Azure CLI extensions"
+    ForceAzureClientsLogin
     if ($SkipInstallK8extension) {
         $k8extensions = @()
     }
@@ -169,6 +170,7 @@ function RegisterAzureArcDataProviders {
         > RegisterAzureArcProviders -ArcProvider @("Kubernetes", "KubernetesConfiguration", "ExtendedLocation", "AzureArcData")
     #>
     WriteHeader "Registering Azure Arc providers"
+    ForceAzureClientsLogin
     Write-Output "`n"
     foreach ($provider in $ArcProviderList) {
         Write-Output "Installing $provider"
@@ -215,6 +217,7 @@ function DownloadCapiFiles {
         > DownloadCapiFiles -StagingStorageAccountName "$Env:stagingStorageAccountName" -ResourceGroup "$Env:resourceGroup" -Username "$Env:USERNAME" -Folder "$Env:TempDir"
     #>
     WriteHeader "Downloading CAPI Kubernetes cluster kubeconfig file"
+    ForceAzureClientsLogin
     $sourceFile = "https://$StagingStorageAccountName.blob.core.windows.net/staging-capi/config"
     $context = (Get-AzStorageAccount -ResourceGroupName $ResourceGroup).Context
     $sas = New-AzStorageAccountSASToken -Context $context -Service Blob -ResourceType Object -Permission racwdlup
@@ -285,6 +288,7 @@ function EnableDataControllerAutoMetrics {
         > EnableDataControllerAutoMetrics -ResourceGroup $Env:resourceGroup -WorkspaceName $Env:workspaceName
     #>
     WriteHeader "Enabling data controller auto metrics & logs upload to log analytics"
+    ForceAzureClientsLogin
     $Env:WORKSPACE_ID = $(az resource show --resource-group $ResourceGroup --name $WorkspaceName --resource-type "Microsoft.OperationalInsights/workspaces" --query properties.customerId -o tsv)
     $Env:WORKSPACE_SHARED_KEY = $(az monitor log-analytics workspace get-shared-keys --resource-group $ResourceGroup --workspace-name $WorkspaceName  --query primarySharedKey -o tsv)
     az arcdata dc update --name $Jumpstartdc --resource-group $ResourceGroup --auto-upload-logs true
@@ -353,6 +357,7 @@ function DeployAzureArcDataController {
         > DeployAzureArcDataController -ResourceGroup $Env:resourceGroup -Folder $Env:TempDir -WorkspaceName $Env:workspaceName -AzdataUsername $Env:AZDATA_USERNAME -AzdataPassword (ConvertTo-SecureString $Env:AZDATA_PASSWORD -AsPlainText -Force) -SpnClientId $Env:spnClientId -SpnTenantId $Env:spnTenantId -SpnClientSecret $Env:spnClientSecret -SubscriptionId $Env:subscriptionId
     #>
     WriteHeader "Deploying Azure Arc Data Controller"
+    ForceAzureClientsLogin
     $customLocationId = $(az customlocation show --name $Jumpstartcl --resource-group $ResourceGroup --query id -o tsv)
     $workspaceId = $(az resource show --resource-group $ResourceGroup --name $WorkspaceName --resource-type "Microsoft.OperationalInsights/workspaces" --query properties.customerId -o tsv)
     $workspaceKey = $(az monitor log-analytics workspace get-shared-keys --resource-group $ResourceGroup --workspace-name $WorkspaceName --query primarySharedKey -o tsv)
@@ -416,6 +421,7 @@ function CreateCustomLocation {
         > CreateCustomLocation -ResourceGroup $Env:resourceGroup -ClusterName $Env:ArcK8sClusterName -Kubeconfig $Env:KUBECONFIG
     #>
     WriteHeader "Create Custom Location"
+    ForceAzureClientsLogin
     $connectedClusterId = az connectedk8s show --name $ClusterName --resource-group $ResourceGroup --query id -o tsv
 
     $extensionId = az k8s-extension show --name arc-data-services `
@@ -458,6 +464,7 @@ function InstallAzureArcEnabledDataServicesExtension {
         > InstallAzureArcEnabledDataServicesExtension -ResourceGroup $Env:resourceGroup -ClusterName $Env:ArcK8sClusterName
     #>
     WriteHeader "Installing Azure Arc-enabled data services extension"
+    ForceAzureClientsLogin
     az k8s-extension create --name arc-data-services `
         --extension-type microsoft.arcdataservices `
         --cluster-type connectedClusters `
@@ -521,7 +528,7 @@ function DeployAzureArcPostgreSQL {
         > DeployAzureArcPostgreSQL -ResourceGroup $Env:resourceGroup -Folder $Env:TempDir -AzdataPassword $(ConvertFrom-SecureString -SecureString $AzdataPassword -AsPlainText) -SubscriptionId $Env:subscriptionId -DeploySQLMI $env:deploySQLMI
     #>
     WriteHeader "Deploying Azure Arc-enabled PostgreSQL"
-   
+    ForceAzureClientsLogin
     $customLocationId = $(az customlocation show --name $CustomLocation --resource-group $ResourceGroup --query id -o tsv)
     $dataControllerId = $(az resource show --resource-group $ResourceGroup --name $ControllerName --resource-type "Microsoft.AzureArcData/dataControllers" --query id -o tsv)
 
@@ -667,7 +674,7 @@ function DeployAzureArcSQLManagedInstance {
         >  DeployAzureArcSQLManagedInstance -ResourceGroup $Env:resourceGroup -Folder $Env:TempDir -AdminUsername $Env:adminUsername -AzdataUsername $Env:AZDATA_USERNAME -AzdataPassword $(ConvertFrom-SecureString -SecureString $AzdataPassword -AsPlainText) -SubscriptionId $Env:subscriptionId -SQLMIHA $env:SQLMIHA -DeployPostgreSQL $Env:deployPostgreSQL
     #>
     WriteHeader "Deploying Azure Arc-enabled SQL Managed Instance"
-
+    ForceAzureClientsLogin
     $customLocationId = $(az customlocation show --name $CustomLocation --resource-group $ResourceGroup --query id -o tsv)
     $dataControllerId = $(az resource show --resource-group $ResourceGroup --name $ControllerName --resource-type "Microsoft.AzureArcData/dataControllers" --query id -o tsv)
 
