@@ -45,7 +45,14 @@ param (
 # Create path
 Start-Transcript "C:\Temp\Bootstrap.log"
 
-Invoke-WebRequest -Uri ($profileRootBaseUrl + "..\common\script\powershell\ArcCommonFunctions.ps1") -OutFile $PsHome\ArcCommonFunctions.ps1
+#Install Module
+New-Item -Path $Env:ProgramFiles"\WindowsPowerShell\Modules\ArcJumpstart" -ItemType directory -Force
+New-Item -Path $Env:ProgramFiles"\WindowsPowerShell\Modules\ArcJumpstart\ArcData" -ItemType directory -Force
+New-Item -Path $Env:ProgramFiles"\WindowsPowerShell\Modules\ArcJumpstart\General" -ItemType directory -Force
+Invoke-WebRequest -Uri ($profileRootBaseUrl + "..\common\script\powershell\Modules\ArcJumpstart\ArcJumpstart.psd1") -OutFile $Env:ProgramFiles"\WindowsPowerShell\Modules\ArcJumpstart\ArcJumpstart.psd1"
+Invoke-WebRequest -Uri ($profileRootBaseUrl + "..\common\script\powershell\Modules\ArcJumpstart\ArcData\ArcData.psm1") -OutFile $Env:ProgramFiles"\WindowsPowerShell\Modules\ArcJumpstart\ArcData\ArcData.psm1"
+Invoke-WebRequest -Uri ($profileRootBaseUrl + "..\common\script\powershell\Modules\ArcJumpstart\General\General.psm1") -OutFile $Env:ProgramFiles"\WindowsPowerShell\Modules\ArcJumpstart\General\General.psm1"
+
 Invoke-WebRequest -Uri ($profileRootBaseUrl + "..\common\script\powershell\ArcDataProfile.ps1") -OutFile $PsHome\Profile.ps1
 . $PsHome\Profile.ps1
 
@@ -53,6 +60,12 @@ BootstrapArcData -ProfileRootBaseUrl $profileRootBaseUrl -TemplateBaseUrl $templ
 
 # Downloading GitHub artifacts for DataServicesLogonScript.ps1
 Invoke-WebRequest -Uri ($templateBaseUrl + "artifacts/capiStorageClass.yaml") -OutFile "$Env:tempDir\capiStorageClass.yaml"
+
+# Schedule a task for DataServicesLogonScript.ps1
+AddLogonScript -AdminUsername $adminUsername -TaskName "DataServicesLogonScript" -Script "$Env:tempDir\DataServicesLogonScript.ps1"
+
+# Disable Windows Server Manager Scheduled Task
+Get-ScheduledTask -TaskName ServerManager | Disable-ScheduledTask
 
 # Clean up Bootstrap.log
 Stop-Transcript
