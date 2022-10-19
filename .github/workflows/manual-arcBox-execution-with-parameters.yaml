@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           ref: ${{ github.event.inputs.githubBranch }}
-      - name: Install brew
+      - name: Install brew -> tfsec and checkov
         run: |
           /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
           echo '# Set PATH, MANPATH, etc., for Homebrew.' >> /home/runner/.bash_profile
@@ -26,11 +26,6 @@ jobs:
           sudo apt-get install build-essential
           brew install gcc
           brew reinstall gcc
-          brew --version 
-          brew install tfsec
-          brew install checkov
-      - name: Install tfsec and checkov
-        run: |
           brew install tfsec
           brew install checkov
       - name: Validate Terraform Script
