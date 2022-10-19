@@ -16,7 +16,7 @@ jobs:
       - name: Check out repo
         uses: actions/checkout@v2
         with:
-          ref: ${{ github.event.inputs.githubBranch }}.
+          ref: ${{ github.event.inputs.githubBranch }}
       - name: Install brew
         run: |
           /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
