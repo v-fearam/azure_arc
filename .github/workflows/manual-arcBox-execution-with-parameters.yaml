@@ -5,7 +5,7 @@ on:
       githubBranch:
         description: "Repo branch where the scripts are located"
         required: true
-        default: "test"    
+        default: "test1"    
 jobs:
   TerraformAnalyzerTool:
     runs-on: ubuntu-latest
@@ -25,6 +25,10 @@ jobs:
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
           sudo apt-get install build-essential
           brew install gcc
+          brew reinstall gcc
+          brew --version 
+          brew install tfsec
+          brew install checkov
       - name: Install tfsec and checkov
         run: |
           brew install tfsec
