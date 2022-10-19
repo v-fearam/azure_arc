@@ -131,12 +131,17 @@ jobs:
         uses: actions/checkout@v2
         with:
           ref: ${{ github.event.inputs.githubBranch }}
-      - name: Install tfsec and checkov
+      - name: Install brew -> Install tfsec and checkov -> Validate Terraform Script
         run: |
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          echo '# Set PATH, MANPATH, etc., for Homebrew.' >> /home/runner/.bash_profile
+          echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> /home/runner/.bash_profile
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          sudo apt-get install build-essential
+          brew install gcc
+          brew reinstall gcc
           brew install tfsec
           brew install checkov
-      - name: Validate Terraform Script
-        run: |
           cd ./azure_jumpstart_arcbox/terraform
           tfsec -f json --exclude "$TFSecExcludeRules" | tee terraform-lint-tfsec-results.txt
           checkov  --directory . --skip-check "$ChecovExcludeRules" | tee terraform-lint-checov-results.txt
