@@ -45,14 +45,15 @@ param (
 # Create path
 Start-Transcript "C:\Temp\Bootstrap.log"
 
-#Install Module
-New-Item -Path $Env:ProgramFiles"\WindowsPowerShell\Modules\ArcJumpstart" -ItemType directory -Force
-New-Item -Path $Env:ProgramFiles"\WindowsPowerShell\Modules\ArcJumpstart\ArcData" -ItemType directory -Force
-New-Item -Path $Env:ProgramFiles"\WindowsPowerShell\Modules\ArcJumpstart\General" -ItemType directory -Force
-Invoke-WebRequest -Uri ($profileRootBaseUrl + "..\common\script\powershell\Modules\ArcJumpstart\ArcJumpstart.psd1") -OutFile $Env:ProgramFiles"\WindowsPowerShell\Modules\ArcJumpstart\ArcJumpstart.psd1"
-Invoke-WebRequest -Uri ($profileRootBaseUrl + "..\common\script\powershell\Modules\ArcJumpstart\ArcData\ArcData.psm1") -OutFile $Env:ProgramFiles"\WindowsPowerShell\Modules\ArcJumpstart\ArcData\ArcData.psm1"
-Invoke-WebRequest -Uri ($profileRootBaseUrl + "..\common\script\powershell\Modules\ArcJumpstart\General\General.psm1") -OutFile $Env:ProgramFiles"\WindowsPowerShell\Modules\ArcJumpstart\General\General.psm1"
-
+#Install Modules
+New-Item -Path $Env:ProgramFiles"\WindowsPowerShell\Modules\Jumpstart" -ItemType directory -Force
+New-Item -Path $Env:ProgramFiles"\WindowsPowerShell\Modules\Jumpstart.DataServices" -ItemType directory -Force
+New-Item -Path $Env:ProgramFiles"\WindowsPowerShell\Modules\Jumpstart.General" -ItemType directory -Force
+Invoke-WebRequest -Uri ($profileRootBaseUrl + "..\common\script\powershell\Modules\Jumpstart\Jumpstart.psd1") -OutFile $Env:ProgramFiles"\WindowsPowerShell\Modules\Jumpstart\Jumpstart.psd1"
+Invoke-WebRequest -Uri ($profileRootBaseUrl + "..\common\script\powershell\Modules\Jumpstart.DataServices\Jumpstart.DataServices.psm1") -OutFile $Env:ProgramFiles"\WindowsPowerShell\Modules\Jumpstart.DataServices\Jumpstart.DataServices.psm1"
+Invoke-WebRequest -Uri ($profileRootBaseUrl + "..\common\script\powershell\Modules\Jumpstart.DataServices\Jumpstart.DataServices.psd1") -OutFile $Env:ProgramFiles"\WindowsPowerShell\Modules\Jumpstart.DataServices\Jumpstart.DataServices.psd1"
+Invoke-WebRequest -Uri ($profileRootBaseUrl + "..\common\script\powershell\Modules\Jumpstart.General\Jumpstart.General.psm1") -OutFile $Env:ProgramFiles"\WindowsPowerShell\Modules\Jumpstart.General\Jumpstart.General.psm1"
+Invoke-WebRequest -Uri ($profileRootBaseUrl + "..\common\script\powershell\Modules\Jumpstart.General\Jumpstart.General.psd1") -OutFile $Env:ProgramFiles"\WindowsPowerShell\Modules\Jumpstart.General\Jumpstart.General.psd1"
 Invoke-WebRequest -Uri ($profileRootBaseUrl + "..\common\script\powershell\ArcDataProfile.ps1") -OutFile $PsHome\Profile.ps1
 . $PsHome\Profile.ps1
 

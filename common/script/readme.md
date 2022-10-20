@@ -11,15 +11,45 @@ The Arc Jumpstart toolkit files documentation follows the guidance at
 # Generate module Manifest
 
 ```
- cd common\script\powershell
- $manifest = @{
-    Path              = 'Modules\ArcJumpstart\ArcJumpstart.psd1'
+cd common\script\powershell
+
+$manifest = @{
+    Path              = 'Modules\Jumpstart.General\Jumpstart.General.psd1'
+    RootModule        = 'Jumpstart.General.psm1' 
     ModuleVersion     = '1.0.0.0'  
-	NestedModules     = @('.\ArcData\ArcData.psm1','.\General\General.psm1')
     Author            = 'Microsoft'
-	FunctionsToExport = @('BootstrapArcData','InstallAzureArcDataCliExtensions','InstallAzureDataStudioExtensions','RegisterAzureArcDataProviders','DownloadCapiFiles','CopyAzureDataStudioSettingsTemplateFile','EnableDataControllerAutoMetrics','DeployAzureArcDataController','CreateCustomLocation','InstallAzureArcEnabledDataServicesExtension','DeployAzureArcPostgreSQL','DeployAzureArcSQLManagedInstance','WriteHeader','AddDesktopShortcut','InstallChocolateyPackages','ChangeWallpaper','AddLogonScript','ForceAzureClientsLogin')
-	Description       = 'ArcJumpstart common functions'
+	FunctionsToExport = @('WriteHeader','AddDesktopShortcut','InstallChocolateyPackages','ChangeWallpaper','AddLogonScript','ForceAzureClientsLogin')
+	Description       = 'Jumpstart common functions'
+    CompanyName       = 'Microsoft'
+}
+New-ModuleManifest @manifest
+
+$manifest = @{
+    Path              = 'Modules\Jumpstart.DataServices\Jumpstart.DataServices.psd1'
+    RootModule        = 'Jumpstart.DataServices.psm1'
+    ModuleVersion     = '1.0.0.0' 
+    RequiredModules = (@{
+        ModuleName="Jumpstart.General"
+        ModuleVersion="1.0.0.0";
+    }) 
+    Author            = 'Microsoft'
+	FunctionsToExport = @('BootstrapArcData','InstallAzureArcDataCliExtensions','InstallAzureDataStudioExtensions','RegisterAzureArcDataProviders','DownloadCapiFiles','CopyAzureDataStudioSettingsTemplateFile','EnableDataControllerAutoMetrics','DeployAzureArcDataController','CreateCustomLocation','InstallAzureArcEnabledDataServicesExtension','DeployAzureArcPostgreSQL','DeployAzureArcSQLManagedInstance')
+	Description       = 'Jumpstart Data Service functions'
+    CompanyName       = 'Microsoft'
+}
+New-ModuleManifest @manifest
+
+$manifest = @{
+    Path              = 'Modules\Jumpstart\Jumpstart.psd1'
+    ModuleVersion     = '1.0.0.0' 
+    RequiredModules = (@{
+        ModuleName="Jumpstart.DataServices"
+        ModuleVersion="1.0.0.0";
+    }) 
+    Author            = 'Microsoft'
+	Description       = 'Jumpstart Toolkit'
     CompanyName       = 'Microsoft'
 }
 New-ModuleManifest @manifest
 ```
+
