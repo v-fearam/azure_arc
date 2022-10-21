@@ -43,17 +43,16 @@ param (
 [System.Environment]::SetEnvironmentVariable('profileRootBaseUrl', $profileRootBaseUrl, [System.EnvironmentVariableTarget]::Machine)
 
 # Create path
-Start-Transcript "C:\Temp\Bootstrap.log"
+$Env:tempDir = "C:\Temp"
+New-Item -Path $Env:tempDir -ItemType directory -Force
+
+Start-Transcript "$Env:tempDir\Bootstrap.log"
 
 #Install Modules
-New-Item -Path $Env:ProgramFiles"\WindowsPowerShell\Modules\Jumpstart" -ItemType directory -Force
-New-Item -Path $Env:ProgramFiles"\WindowsPowerShell\Modules\Jumpstart.DataServices" -ItemType directory -Force
-New-Item -Path $Env:ProgramFiles"\WindowsPowerShell\Modules\Jumpstart.General" -ItemType directory -Force
-Invoke-WebRequest -Uri ($profileRootBaseUrl + "..\common\script\powershell\Modules\Jumpstart\Jumpstart.psd1") -OutFile $Env:ProgramFiles"\WindowsPowerShell\Modules\Jumpstart\Jumpstart.psd1"
-Invoke-WebRequest -Uri ($profileRootBaseUrl + "..\common\script\powershell\Modules\Jumpstart.DataServices\Jumpstart.DataServices.psm1") -OutFile $Env:ProgramFiles"\WindowsPowerShell\Modules\Jumpstart.DataServices\Jumpstart.DataServices.psm1"
-Invoke-WebRequest -Uri ($profileRootBaseUrl + "..\common\script\powershell\Modules\Jumpstart.DataServices\Jumpstart.DataServices.psd1") -OutFile $Env:ProgramFiles"\WindowsPowerShell\Modules\Jumpstart.DataServices\Jumpstart.DataServices.psd1"
-Invoke-WebRequest -Uri ($profileRootBaseUrl + "..\common\script\powershell\Modules\Jumpstart.General\Jumpstart.General.psm1") -OutFile $Env:ProgramFiles"\WindowsPowerShell\Modules\Jumpstart.General\Jumpstart.General.psm1"
-Invoke-WebRequest -Uri ($profileRootBaseUrl + "..\common\script\powershell\Modules\Jumpstart.General\Jumpstart.General.psd1") -OutFile $Env:ProgramFiles"\WindowsPowerShell\Modules\Jumpstart.General\Jumpstart.General.psd1"
+Invoke-WebRequest -Uri ($profileRootBaseUrl + "..\common\script\powershell\CreateJumpstartModule.ps1") -OutFile $Env:tempDir\CreateJumpstartModule.ps1
+. $Env:tempDir/CreateJumpstartModule.ps1
+CreateJumpstartModule -ProfileRootBaseUrl $profileRootBaseUrl -Folder $Env:ProgramFiles
+
 Invoke-WebRequest -Uri ($profileRootBaseUrl + "..\common\script\powershell\ArcDataProfile.ps1") -OutFile $PsHome\Profile.ps1
 . $PsHome\Profile.ps1
 
